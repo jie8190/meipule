@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">没谱了</string>
+    <string name="title_activity_main">没谱了</string>
+    <string name="package_name">com.meipule.app</string>
+    <string name="custom_url_scheme">com.meipule.app</string>
+</resources>
