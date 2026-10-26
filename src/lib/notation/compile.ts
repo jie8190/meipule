@@ -784,6 +784,11 @@ export function compileSong(input: unknown, opts: CompileOptions = {}): Score {
 
   const chordsUsed = chordOrder.map((name) => ({ name, shape: shapeOf(name) }))
 
+  // 只有段落名、没有任何小节或和弦歌词：多半是 AI 没把谱子扒出来
+  const hasLines = sections.some((s) => s.kind === 'lines' && s.lines.length > 0)
+  if (docSections.length > 0 && measures.length === 0 && !hasLines)
+    warn('全曲', '曲谱只有段落名，没有任何小节或和弦歌词，谱面会是空的')
+
   if (keyInfo && doc.key) {
     const est = estimateShapeKey(chordCount, chordOrder)
     const keyMajor = keyInfo.minor ? mod12(keyInfo.pc + 3) : keyInfo.pc

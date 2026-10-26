@@ -1,7 +1,8 @@
 // AI 扒谱：Claude（官方 SDK）或任意 OpenAI 兼容接口，流式返回；附带连接测试、模型列表与试跑
 import Anthropic from '@anthropic-ai/sdk'
 import type { AiSettings } from '@/store/settings'
-import { isNative, nativeGetJson, nativePostJson } from './native'
+import { isNative, nativeGetJson, nativePost, nativePostJson } from './native'
+import { applyLevels, findContent, inkMask, levelsOf, planStrips, verticalCrossings } from './image'
 
 export interface AiImage {
   name: string
@@ -37,7 +38,13 @@ export const CLAUDE_MODELS = [
 export async function transcribe(opts: TranscribeOptions): Promise<string> {
   const { settings } = opts
   if (!settings.apiKey.trim()) throw new Error('请先在「AI 设置」里填写 API Key')
-  return settings.provider === 'anthropic' ? viaClaude(opts) : viaOpenAICompatible(opts)
+  if (settings.provider === 'anthropic') return viaClaude(opts)
+  try {
+    return await viaOpenAICompatible(opts)
+  } catch (e) {
+    if (e instanceof StreamBroken && e.fresh && !opts.signal?.aborted) return viaOpenAICompatible(opts)
+    throw e
+  }
 }
 
 function claudeClient(settings: AiSettings, timeout: number, maxRetries: number) {
@@ -169,105 +176,149 @@ async function viaOpenAICompatible({ settings, prompt, images, signal, onText, o
         { type: 'text', text: prompt },
       ]
     : prompt
+  // 始终用流式：服务端会立刻返回响应头再边想边写。不流式时要等整个结果生成完才有响应，
+  // 大图、多页、高思考强度很容易超过网关（Cloudflare 等）的 100 秒限制，返回 524。
   // 思考强度：GPT-5 及以上、o 系列等推理模型支持 reasoning_effort；不支持的接口返回 400 时去掉重试
-  const bodyOf = (stream: boolean, withEffort: boolean) => ({
+  const bodyOf = (withEffort: boolean) => ({
     model: settings.model.trim(),
-    stream,
+    stream: true,
     messages: [{ role: 'user', content }],
     ...(withEffort && settings.effort ? { reasoning_effort: settings.effort } : {}),
   })
   const effortRejected = (status: number, text: string) => status === 400 && /reasoning|effort/i.test(text)
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${settings.apiKey.trim()}` }
+
+  // 解析 SSE：data: {...} 行
+  let full = ''
+  let reasoning = ''
+  let finish = ''
+  const onLine = (line: string) => {
+    const t = line.trim()
+    if (!t.startsWith('data:')) return
+    const data = t.slice(5).trim()
+    if (data === '[DONE]') return
+    try {
+      const j = JSON.parse(data)
+      if (j.error) throw new Error(`接口返回错误：${typeof j.error === 'string' ? j.error : (j.error.message ?? JSON.stringify(j.error)).slice(0, 300)}`)
+      const fr = j.choices?.[0]?.finish_reason
+      if (fr) finish = fr
+      const d = j.choices?.[0]?.delta ?? j.choices?.[0]?.message
+      // DeepSeek-R1、通义 QwQ 等推理模型会先输出 reasoning_content
+      if (typeof d?.reasoning_content === 'string' && d.reasoning_content) {
+        if (!reasoning) onPhase?.('thinking')
+        reasoning += d.reasoning_content
+        onThinking?.(reasoning)
+      }
+      if (typeof d?.content === 'string' && d.content) {
+        if (!full) onPhase?.('writing')
+        full += d.content
+        onText(full)
+      }
+    } catch (e) {
+      if ((e as Error).message.startsWith('接口返回错误')) throw e
+      /* 忽略不完整的行 */
+    }
+  }
+  const finishUp = () => {
+    if (finish === 'length') throw new Error('输出太长被截断了（达到接口的输出长度上限），可以把曲谱分成几段分别扒')
+    if (!full.trim()) throw new Error('接口没有返回任何内容，可能是模型不支持图片，或请求被网关拦截')
+    return full
+  }
+
   onPhase?.('connecting')
-  // 安卓 App 里走原生网络请求，不受浏览器跨域限制（国内各家 OpenAI 兼容接口都能直接用）。
-  // 原生请求不支持流式，结果会在完成后一次性返回。
-  if (isNative) {
+  // WebView / 浏览器里直接流式请求：能实时看到进度
+  const post = (withEffort: boolean) => fetch(url, { method: 'POST', signal, headers, body: JSON.stringify(bodyOf(withEffort)) })
+  let res: Response | null = null
+  // 中转站偶尔会在上传大图时断开连接，失败了先原样重试一次
+  for (let attempt = 0; attempt < 2 && !res; attempt++) {
+    try {
+      res = await post(true)
+      if (res.status === 400 && settings.effort) {
+        const text = await res.clone().text().catch(() => '')
+        if (effortRejected(400, text)) res = await post(false)
+      }
+    } catch (e) {
+      if ((e as Error).name === 'AbortError' || signal?.aborted) throw new Error('已取消')
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, 1500))
+        continue
+      }
+      // 安卓 App 里：接口不允许跨域时改走原生请求（见下）
+      if (!isNative) throw new Error('无法连接到接口（可能是网络问题，或该服务不允许浏览器直接调用 / 跨域；安卓 App 里没有这个限制）')
+    }
+  }
+
+  if (!res) {
+    // 原生请求不受跨域限制，但拿不到流：仍然请求流式（网关立刻收到响应头，不会 524），完成后一次性解析
     onText('')
     onPhase?.('waiting')
     let r: { status: number; data: unknown }
     try {
-      const headers = { Authorization: `Bearer ${settings.apiKey.trim()}` }
-      r = await nativePostJson(url, headers, bodyOf(false, true), signal)
-      if (effortRejected(r.status, JSON.stringify(r.data))) r = await nativePostJson(url, headers, bodyOf(false, false), signal)
+      r = await nativePost(url, headers, bodyOf(true), signal)
+      const errText = typeof r.data === 'string' ? r.data : JSON.stringify(r.data)
+      if (effortRejected(r.status, errText)) r = await nativePost(url, headers, bodyOf(false), signal)
     } catch (e) {
       const msg = (e as Error).message
       throw new Error(msg === '已取消' ? msg : `无法连接到接口：${msg}`)
     }
-    if (r.status >= 400) throw new Error(`接口返回 ${r.status}：${JSON.stringify(r.data).slice(0, 300)}`)
-    const data = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as {
-      choices?: { message?: { content?: string; reasoning_content?: string }; finish_reason?: string }[]
+    const text = typeof r.data === 'string' ? r.data : JSON.stringify(r.data)
+    if (r.status >= 400) throw new Error(httpError(r.status, text))
+    if (/^\s*data:/m.test(text)) text.split('\n').forEach(onLine)
+    else {
+      // 个别接口忽略 stream 参数，直接返回完整 JSON
+      const data = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as {
+        choices?: { message?: { content?: string; reasoning_content?: string }; finish_reason?: string }[]
+      }
+      onLine(`data: ${JSON.stringify(data)}`)
     }
-    if (data.choices?.[0]?.finish_reason === 'length') throw new Error('输出太长被截断了（达到接口的输出长度上限），可以把曲谱分成几段分别扒')
-    const msg = data.choices?.[0]?.message
-    if (msg?.reasoning_content) onThinking?.(msg.reasoning_content)
-    const text = msg?.content ?? ''
-    onPhase?.('writing')
-    onText(text)
-    return text
+    return finishUp()
   }
-  let res: Response
-  const post = (withEffort: boolean) =>
-    fetch(url, {
-      method: 'POST',
-      signal,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${settings.apiKey.trim()}` },
-      body: JSON.stringify(bodyOf(true, withEffort)),
-    })
-  try {
-    res = await post(true)
-    if (res.status === 400 && settings.effort) {
-      const text = await res.clone().text().catch(() => '')
-      if (effortRejected(400, text)) res = await post(false)
-    }
-  } catch (e) {
-    if ((e as Error).name === 'AbortError') throw new Error('已取消')
-    throw new Error('无法连接到接口（可能是网络问题，或该服务不允许浏览器直接调用 / 跨域；安卓 App 里没有这个限制）')
-  }
+
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => '')
-    throw new Error(`接口返回 ${res.status}：${body.slice(0, 300)}`)
+    throw new Error(httpError(res.status, body))
   }
   onPhase?.('waiting')
   const reader = res.body.getReader()
   const dec = new TextDecoder()
   let buf = ''
-  let full = ''
-  let reasoning = ''
-  let finish = ''
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    buf += dec.decode(value, { stream: true })
-    const lines = buf.split('\n')
-    buf = lines.pop() ?? ''
-    for (const line of lines) {
-      const t = line.trim()
-      if (!t.startsWith('data:')) continue
-      const data = t.slice(5).trim()
-      if (data === '[DONE]') continue
-      try {
-        const j = JSON.parse(data)
-        const fr = j.choices?.[0]?.finish_reason
-        if (fr) finish = fr
-        const d = j.choices?.[0]?.delta
-        // DeepSeek-R1、通义 QwQ 等推理模型会先输出 reasoning_content
-        if (typeof d?.reasoning_content === 'string' && d.reasoning_content) {
-          if (!reasoning) onPhase?.('thinking')
-          reasoning += d.reasoning_content
-          onThinking?.(reasoning)
-        }
-        if (typeof d?.content === 'string' && d.content) {
-          if (!full) onPhase?.('writing')
-          full += d.content
-          onText(full)
-        }
-      } catch {
-        /* 忽略不完整的行 */
-      }
+  try {
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buf += dec.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() ?? ''
+      lines.forEach(onLine)
     }
+  } catch (e) {
+    if ((e as Error).name === 'AbortError' || signal?.aborted) throw new Error('已取消')
+    if ((e as Error).message.startsWith('接口返回错误')) throw e
+    // 还什么都没收到就断了：多半是中转站偶发断线，上层会自动重试一次
+    throw new StreamBroken(!full && !reasoning)
   }
-  if (finish === 'length') throw new Error('输出太长被截断了（达到接口的输出长度上限），可以把曲谱分成几段分别扒')
-  if (!full.trim()) throw new Error('接口没有返回任何内容，可能是模型不支持图片，或请求被网关拦截')
-  return full
+  if (buf) onLine(buf)
+  return finishUp()
+}
+
+/** 流式传输中途断线；fresh 表示还没收到任何内容，可以放心重试 */
+class StreamBroken extends Error {
+  constructor(readonly fresh: boolean) {
+    super('和接口的连接中途断开了（可能是网络不稳定，或中转站限制了单次请求的时长）。可以重试；反复出现时把思考强度调低一档')
+  }
+}
+
+/** 把常见的网关错误码翻译成能看懂的提示 */
+function httpError(status: number, body: string): string {
+  const head = `接口返回 ${status}`
+  if (status === 524 || status === 504)
+    return `${head}：网关等待超时（模型思考太久还没开始输出）。可以把思考强度调低，或者少传几页图片分段扒`
+  if (status === 413) return `${head}：请求太大（图片太多或太大），可以少传几页分段扒`
+  if (status === 401 || status === 403) return `${head}：API Key 无效或没有权限`
+  if (status === 429) return `${head}：请求太频繁或额度不足，稍后再试`
+  // Cloudflare 等网关的错误页是整页 HTML，只取标题
+  const title = /<title>([^<]*)<\/title>/i.exec(body)?.[1]
+  return `${head}：${(title ?? body).trim().slice(0, 300)}`
 }
 
 // ---------------- 连接测试 ----------------
@@ -492,11 +543,17 @@ export interface AiSource {
   width: number
   height: number
   parts: AiImage[]
+  /** 有没有硬切（相邻两段有重叠） */
+  overlapped?: boolean
 }
 
-/** 每段的像素上限：约 1.1 百万像素，Claude 不会再压缩，OpenAI 的高清模式也能保留清晰度 */
-const SLICE_PIXELS = 1_100_000
-const MAX_WIDTH = 1400
+/**
+ * 送给模型的图统一放大/缩小到这个宽度，再切成不高于 STRIP_H 的横条：
+ * OpenAI 系的高清模式会把短边缩到 768，横条的短边在 768 以内就不会再被缩小；
+ * Claude 的上限是长边 1568，几乎不损失。照片里只有几个像素高的品位数字放大后模型才认得出来。
+ */
+const TARGET_W = 1600
+const STRIP_H = 760
 /** 相邻两段的重叠比例：保证被切开的那一行在下一段里是完整的 */
 export const SLICE_OVERLAP = 0.15
 
@@ -513,7 +570,7 @@ function decodeImage(file: File): Promise<HTMLImageElement> {
   })
 }
 
-function renderPart(img: HTMLImageElement, sx: number, sy: number, sw: number, sh: number, w: number, h: number): string {
+function renderPart(img: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, w: number, h: number): string {
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
@@ -528,9 +585,9 @@ function renderPart(img: HTMLImageElement, sx: number, sy: number, sw: number, s
 const toPart = (name: string, dataUrl: string): AiImage => ({ name, mediaType: 'image/jpeg', data: dataUrl.split(',')[1], preview: dataUrl })
 
 /**
- * 读取图片。普通图片长边缩到 2000px 以内；
- * 长截图（高宽比 > 1.6，比如从有谱么导出的整首歌）按从上到下切成有重叠的多段，
- * 否则整张缩小后字会糊到模型认不出来。
+ * 读取图片：裁掉照片四周的背景和空白，统一缩放到 TARGET_W 宽，
+ * 再从上到下在空白处切成横条（矮的图就是一张）。所有分析都在小图上做，
+ * 只按横条逐段绘制，长截图在手机上也不会占用太多内存。
  */
 export async function loadSource(file: File): Promise<AiSource> {
   const img = await decodeImage(file)
@@ -540,25 +597,78 @@ export async function loadSource(file: File): Promise<AiSource> {
   const preview = renderPart(img, 0, 0, w0, Math.min(h0, w0 * 1.33), thumbW, Math.round(Math.min(h0, w0 * 1.33) * (thumbW / w0)))
   URL.revokeObjectURL(img.src)
 
-  const ws = Math.min(1, MAX_WIDTH / w0)
-  const W = Math.round(w0 * ws)
-  const H = Math.round(h0 * ws)
-  if (H / W <= 1.6) {
-    const s = Math.min(1, 2000 / Math.max(w0, h0))
-    const w = Math.round(w0 * s)
-    const h = Math.round(h0 * s)
-    return { name: file.name, preview, width: w0, height: h0, parts: [toPart(file.name, renderPart(img, 0, 0, w0, h0, w, h))] }
+  // 小图：找内容区域、统计色阶和每行墨迹
+  const aw = Math.min(480, w0)
+  const ah = Math.max(1, Math.round(h0 * (aw / w0)))
+  const ac = document.createElement('canvas')
+  ac.width = aw
+  ac.height = ah
+  const actx = ac.getContext('2d', { willReadFrequently: true })!
+  actx.drawImage(img, 0, 0, aw, ah)
+  const px = actx.getImageData(0, 0, aw, ah).data
+  const gray = new Uint8ClampedArray(aw * ah)
+  for (let i = 0; i < gray.length; i++) gray[i] = (px[i * 4] * 77 + px[i * 4 + 1] * 150 + px[i * 4 + 2] * 29) >> 8
+  let mask = inkMask(gray, aw, ah)
+  const found = findContent(gray, aw, ah, mask)
+  const box = found ?? { x: 0, y: 0, w: aw, h: ah }
+  const inBox = (i: number) => {
+    const x = i % aw
+    const y = (i / aw) | 0
+    return x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + box.h
   }
-  const sliceH = Math.round(Math.min(W * 1.2, SLICE_PIXELS / W))
-  const overlap = Math.round(sliceH * SLICE_OVERLAP)
-  const step = sliceH - overlap
-  const n = Math.max(1, Math.ceil((H - overlap) / step))
-  const parts: AiImage[] = []
-  for (let i = 0; i < n; i++) {
-    const y = Math.min(i * step, H - sliceH)
-    parts.push(toPart(`${file.name} #${i + 1}`, renderPart(img, 0, y / ws, w0, sliceH / ws, W, sliceH)))
+  const levels = found ? levelsOf(gray, inBox, gray.length) : null
+
+  // 深色底的截图：改用「和底色差得多」来判断墨迹
+  if (!found) {
+    const bgHist = new Uint32Array(256)
+    for (let i = 0; i < gray.length; i += 3) bgHist[gray[i]]++
+    let bg = 0
+    for (let v = 1; v < 256; v++) if (bgHist[v] > bgHist[bg]) bg = v
+    mask = new Uint8Array(gray.length)
+    for (let i = 0; i < gray.length; i++) if (Math.abs(gray[i] - bg) > 48) mask[i] = 1
   }
-  return { name: file.name, preview, width: w0, height: h0, parts }
+  // 每行墨迹、每行被多少根长竖线穿过
+  const rowInk = new Float32Array(box.h)
+  for (let y = 0; y < box.h; y++) {
+    let c = 0
+    const row = (box.y + y) * aw
+    for (let x = box.x; x < box.x + box.w; x++) c += mask[row + x]
+    rowInk[y] = c
+  }
+  const rowCross = verticalCrossings(mask, aw, box, Math.max(8, Math.round(aw * 0.03)))
+
+  const f = w0 / aw
+  const crop = { x: box.x * f, y: box.y * f, w: box.w * f, h: box.h * f }
+  // 缩放到统一宽度（放大最多 2.5 倍）
+  const s = Math.min(2.5, TARGET_W / crop.w)
+  const W = Math.round(crop.w * s)
+  const H = Math.round(crop.h * s)
+  const ink = new Float32Array(H)
+  const cross = new Uint16Array(H)
+  for (let y = 0; y < H; y++) {
+    const r = Math.min(box.h - 1, Math.floor(y / s / f))
+    ink[y] = rowInk[r]
+    cross[y] = rowCross[r]
+  }
+
+  const render = (y0: number, y1: number) => {
+    const h = y1 - y0
+    const canvas = document.createElement('canvas')
+    canvas.width = W
+    canvas.height = h
+    const ctx = canvas.getContext('2d', { willReadFrequently: !!levels })!
+    ctx.fillStyle = '#fff'
+    ctx.fillRect(0, 0, W, h)
+    ctx.imageSmoothingQuality = 'high'
+    ctx.drawImage(img, crop.x, crop.y + y0 / s, crop.w, h / s, 0, 0, W, h)
+    if (levels) applyLevels(ctx, W, h, levels)
+    return canvas.toDataURL('image/jpeg', 0.9)
+  }
+
+  if (H <= STRIP_H * 1.25) return { name: file.name, preview, width: w0, height: h0, parts: [toPart(file.name, render(0, H))] }
+  const { strips, hard } = planStrips(ink, H, STRIP_H, Math.max(1, box.w * 0.004), Math.round(STRIP_H * SLICE_OVERLAP), cross)
+  const parts = strips.map(([y0, y1], i) => toPart(`${file.name} #${i + 1}`, render(y0, y1)))
+  return { name: file.name, preview, width: w0, height: h0, parts, overlapped: hard }
 }
 
 /** 给模型的图片说明：哪几张是同一张长图切出来的 */
@@ -569,7 +679,9 @@ export function describeSources(sources: AiSource[]): string {
     const a = n + 1
     n += s.parts.length
     return s.parts.length > 1
-      ? `- 第 ${a}–${n} 张：同一张长截图从上到下切成的 ${s.parts.length} 段，相邻两段有约 ${Math.round(SLICE_OVERLAP * 100)}% 的重叠。重叠处的内容只转写一次，不要重复。`
+      ? `- 第 ${a}–${n} 张：同一张图（一页曲谱或一张长截图）从上到下切成的 ${s.parts.length} 段，已经裁掉四周空白并放大，按顺序拼起来就是完整的一张。${
+          s.overlapped ? `个别地方相邻两段有约 ${Math.round(SLICE_OVERLAP * 100)}% 的重叠，重叠处的内容只转写一次。` : '切口都在行与行之间的空白处，没有重叠。'
+        }`
       : `- 第 ${a} 张：一页曲谱。`
   })
   return `共 ${n} 张图片，按顺序排列：\n${lines.join('\n')}`

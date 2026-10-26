@@ -4,7 +4,9 @@ import { AnimatePresence, motion } from 'motion/react'
 import { WandSparkles, ImagePlus, X, Copy, Check, KeyRound, Square, Save, PenLine, Eye, EyeOff, Bot, ExternalLink, RefreshCw, ClipboardPaste, Loader2 } from 'lucide-react'
 import { useSettings } from '@/store/settings'
 import { useUi } from '@/store/ui'
-import { buildPrompt, formatSongJson, type TranscribeMode } from '@/lib/notation/spec'
+import { buildPrompt, formatSongJson, pageInstructions, parseLenient, type TranscribeMode } from '@/lib/notation/spec'
+import { mergePages, songHeader } from '@/lib/notation/merge'
+import type { SongDoc } from '@/lib/notation/types'
 import { analyzeImport, stashDraft } from '@/lib/importer'
 import { createSong } from '@/lib/db'
 import { describeSources, loadSource, transcribe, type AiPhase, type AiSource } from '@/lib/ai'
@@ -45,6 +47,8 @@ export default function AiPage() {
   const [thinking, setThinking] = useState('')
   const [timing, setTiming] = useState<{ start: number; firstText?: number; end?: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /** 分页扒谱的进度 */
+  const [pages, setPages] = useState<{ done: number; total: number } | null>(null)
   const [keyOpen, setKeyOpen] = useState(false)
   const [showPreview, setShowPreview] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
@@ -59,11 +63,13 @@ export default function AiPage() {
       const loaded: AiSource[] = []
       for (const f of imgs) loaded.push(await loadSource(f))
       setSources((cur) => {
-        const next = [...cur, ...loaded]
-        // 接口一般限制单次 100 张以内，留些余量
+        // 接口一般限制单次 100 张以内：一张图切出来的段数留些余量；多张图会分页扒，总数可以多一些
+        const tooLong = loaded.filter((s) => s.parts.length > 60)
+        if (tooLong.length) toast.warn('有截图太长了（切出来超过 60 段），请分成几张截图再上传')
         let total = 0
-        const kept = next.filter((s) => (total += s.parts.length) <= 60)
-        if (kept.length < next.length) toast.warn('图片太多了，一次最多约 60 段，多出的已忽略')
+        const next = [...cur, ...loaded.filter((s) => s.parts.length <= 60)]
+        const kept = next.filter((s) => (total += s.parts.length) <= 200)
+        if (kept.length < next.length) toast.warn('图片太多了，多出的已忽略，可以分几次扒')
         return kept
       })
       const sliced = loaded.filter((s) => s.parts.length > 1)
@@ -119,6 +125,71 @@ export default function AiPage() {
     }
   }
 
+  // 页数多时一次发给模型，它往往只读个大概就放弃了：改成一页一页扒，再拼起来
+  const pageMode = sources.length >= 3 || (sources.length === 2 && parts.length > 12)
+
+  /** 分页扒谱：先扒第 1 页拿到全曲信息，其余页同时扒 3 页，扒完一页合并一页 */
+  const runPages = async (ctrl: AbortController) => {
+    const total = sources.length
+    const docs: (Partial<SongDoc> | null)[] = Array(total).fill(null)
+    const failed: { page: number; msg: string }[] = []
+    let done = 0
+    setPages({ done, total })
+    const promptOf = (k: number, header?: unknown) =>
+      `${buildPrompt({ mode, extra, hasImages: true, imageGuide: describeSources([sources[k - 1]]) })}
+
+${pageInstructions(k, total, header)}`
+    const one = async (k: number, header?: unknown): Promise<Partial<SongDoc> | null> => {
+      let msg = ''
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const full = await transcribe({
+            settings: ai,
+            prompt: promptOf(k, header),
+            images: sources[k - 1].parts,
+            signal: ctrl.signal,
+            onPhase: k === 1 ? setPhase : undefined,
+            onThinking: k === 1 ? setThinking : undefined,
+            onText: () => {},
+          })
+          const parsed = parseLenient(full)
+          if (parsed.value && typeof parsed.value === 'object' && !Array.isArray(parsed.value)) return parsed.value as Partial<SongDoc>
+          msg = parsed.error ?? 'AI 的输出不是 JSON'
+        } catch (e) {
+          if (ctrl.signal.aborted) throw new Error('已取消')
+          msg = (e as Error).message
+        }
+      }
+      failed.push({ page: k, msg })
+      return null
+    }
+    const finishPage = () => {
+      setPages({ done: ++done, total })
+      const ok = docs.filter((d): d is Partial<SongDoc> => !!d)
+      if (ok.length) setResult(formatSongJson(mergePages(ok)))
+    }
+    docs[0] = await one(1)
+    if (!docs[0]) throw new Error(`第 1 页没有扒成功：${failed[0]?.msg}`)
+    setTiming((x) => (x ? { ...x, firstText: Date.now() } : x))
+    finishPage()
+    const header = songHeader(docs[0])
+    let next = 2
+    const worker = async () => {
+      while (next <= total) {
+        const k = next++
+        docs[k - 1] = await one(k, header)
+        finishPage()
+      }
+    }
+    await Promise.all([worker(), worker(), worker()])
+    const merged = mergePages(docs.filter((d): d is Partial<SongDoc> => !!d))
+    setResult(formatSongJson(merged))
+    if (failed.length) {
+      const list = failed.map((f) => f.page).sort((a, b) => a - b)
+      setError(`第 ${list.join('、')} 页没有扒成功（${failed[0].msg}），其余 ${total - list.length} 页已经合并好了。可以把这几页单独再扒一次，在编辑器里补进去`)
+    } else toast.ok(`${total} 页都扒好了：「${merged.title}」`)
+  }
+
   const run = async (customPrompt?: string, withImages = false) => {
     if (!hasKey) return setKeyOpen(true)
     setError(null)
@@ -126,11 +197,16 @@ export default function AiPage() {
     setResult('')
     setThinking('')
     setPhase('connecting')
+    setPages(null)
     setTiming({ start: Date.now() })
     const ctrl = new AbortController()
     abortRef.current = ctrl
     let gotText = false
     try {
+      if (!customPrompt && pageMode) {
+        await runPages(ctrl)
+        return
+      }
       const full = await transcribe({
         settings: ai,
         prompt: customPrompt ?? directPrompt,
@@ -411,6 +487,7 @@ ${result}`
                 thinking={thinking}
                 chars={result.length}
                 imageCount={parts.length}
+                pages={pages}
                 imageBytes={parts.reduce((a, i) => a + i.data.length * 0.75, 0)}
                 host={aiHost(ai.provider, ai.baseUrl)}
                 directClaude={ai.provider === 'anthropic' && !ai.baseUrl.trim()}
@@ -523,8 +600,10 @@ function AiProgress({
   imageBytes,
   host,
   directClaude,
+  pages,
   onStop,
 }: {
+  pages: { done: number; total: number } | null
   phase: AiPhase
   startedAt: number
   firstTextAt?: number
@@ -555,6 +634,11 @@ function AiProgress({
   else if (phase === 'waiting') line = '已连接，模型正在读图（图片多时需要一两分钟）…'
   else if (phase === 'thinking') line = '模型正在分析曲谱结构…'
   else line = `正在输出 JSON：${chars.toLocaleString()} 字${speed ? ` · 约 ${speed} 字/秒` : ''}`
+  if (pages)
+    line =
+      pages.done === 0
+        ? `分页扒谱：共 ${pages.total} 页，先读第 1 页的全曲信息（${line}）`
+        : `分页扒谱：已完成 ${pages.done} / ${pages.total} 页，其余页同时在扒（每次 3 页）…`
 
   return (
     <div className="mt-3 rounded-2xl border border-[color-mix(in_oklab,var(--ai-1)_35%,transparent)] bg-[color-mix(in_oklab,var(--ai-1)_6%,transparent)] p-3">
@@ -580,6 +664,11 @@ function AiProgress({
         <span className="font-mono text-xs tabular-nums text-fg-2">{fmtDuration(elapsed)}</span>
       </div>
       <div className="mt-2 text-[13px] text-fg">{line}</div>
+      {pages && (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--fg)_8%,transparent)]">
+          <div className="h-full rounded-full bg-ai-gradient transition-all" style={{ width: `${Math.max(4, (pages.done / pages.total) * 100)}%` }} />
+        </div>
+      )}
       {slowConnect && (
         <div className="mt-2 rounded-xl bg-[color-mix(in_oklab,var(--warn)_12%,transparent)] px-3 py-2 text-xs leading-relaxed text-warn">
           超过 20 秒还没连上。

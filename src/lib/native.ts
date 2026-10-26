@@ -128,6 +128,26 @@ export async function nativePostJson(url: string, headers: Record<string, string
   ])
 }
 
+/** 原生 HTTP POST，按文本读回响应（用于流式接口：结果完成后一次性拿到全部 SSE 文本） */
+export async function nativePost(url: string, headers: Record<string, string>, body: unknown, signal?: AbortSignal): Promise<{ status: number; data: unknown }> {
+  const req = CapacitorHttp.post({
+    url,
+    headers: { 'Content-Type': 'application/json', ...headers },
+    data: body,
+    connectTimeout: 30_000,
+    readTimeout: 900_000,
+    responseType: 'text',
+  })
+  if (!signal) return req
+  return Promise.race([
+    req,
+    new Promise<never>((_, reject) => {
+      if (signal.aborted) reject(new Error('已取消'))
+      signal.addEventListener('abort', () => reject(new Error('已取消')), { once: true })
+    }),
+  ])
+}
+
 /** 原生 HTTP GET（绕过跨域），返回解析后的 JSON */
 export async function nativeGetJson(url: string, headers: Record<string, string>): Promise<{ status: number; data: unknown }> {
   return CapacitorHttp.get({ url, headers, connectTimeout: 15_000, readTimeout: 20_000, responseType: 'json' })

@@ -364,6 +364,9 @@ export function AiSettingsModal({ open, onClose }: { open: boolean; onClose: () 
           <div>
             <Label hint={isClaude ? '越高越准，也越慢越贵' : '推理模型才生效（如 GPT-5 及以上）；不支持时自动忽略'}>思考强度</Label>
               <Segmented className="w-full" value={ai.effort ?? 'high'} onChange={(v) => setAi({ effort: v })} options={EFFORTS} />
+            <p className="mt-1.5 text-[11px] leading-relaxed text-fg-3">
+              扒六线谱、拍照的谱建议选「极高」：逐音读得准很多，但每页要两三分钟。只有和弦歌词的弹唱谱用「高」就够了。
+            </p>
           </div>
         </Step>
       </div>

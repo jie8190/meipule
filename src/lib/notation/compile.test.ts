@@ -116,9 +116,13 @@ describe('compile', () => {
     expect(right.diagnostics).toEqual([])
   })
   it('renders marker-only sections without warnings', () => {
-    const s = compileSong({ title: 't', sections: [{ name: '重复：桥段 → 副歌' }] })
+    const s = compileSong({ title: 't', sections: [{ name: '副歌', lines: ['[C]奔'] }, { name: '重复：桥段 → 副歌' }] })
     expect(s.diagnostics).toEqual([])
-    expect(s.sections[0]).toMatchObject({ kind: 'lines', lines: [] })
+    expect(s.sections[1]).toMatchObject({ kind: 'lines', lines: [] })
+  })
+  it('warns when a song has only section names (AI gave up)', () => {
+    const s = compileSong({ title: 't', sections: [{ name: '前奏', note: '看不清' }, { name: '主歌' }] })
+    expect(s.diagnostics.map((d) => d.message).join()).toContain('只有段落名')
   })
   it('gives friendly diagnostics', () => {
     const score = compileSong({ title: 'x', sections: [{ measures: [{ chord: 'Hm', tab: '3:2/4 3:3' }] }] })
