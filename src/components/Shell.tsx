@@ -19,10 +19,14 @@ import {
   Moon,
   Sun,
   Wrench,
+  Loader2,
+  CircleCheck,
+  CircleAlert,
 } from 'lucide-react'
 import { db } from '@/lib/db'
 import { useUi } from '@/store/ui'
-import { useKeyboardOpen } from '@/lib/native'
+import { useKeepAwake, useKeyboardOpen } from '@/lib/native'
+import { useAiJob } from '@/store/aiJob'
 import { resolvedTheme, useSettings } from '@/store/settings'
 import { cn, Kbd } from './ui'
 
@@ -164,7 +168,7 @@ function Sidebar() {
 
       <div className="flex items-center gap-2 border-t border-line px-4 py-3">
         <button onClick={() => openImport()} className="flex h-9 flex-1 items-center gap-2 rounded-xl px-2 text-[13px] text-fg-2 transition hover:bg-[color-mix(in_oklab,var(--fg)_5%,transparent)] hover:text-fg">
-          <FileUp className="size-4" /> 导入 JSON
+          <FileUp className="size-4" /> 导入曲谱
         </button>
         <button
           aria-label="切换主题"
@@ -244,7 +248,7 @@ function BottomNav() {
               <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-3" />
               {[
                 { icon: WandSparkles, title: 'AI 扒谱', desc: '拍照/截图，让 AI 转成曲谱 JSON', cls: 'bg-ai-gradient text-white', go: () => navigate('/ai') },
-                { icon: FileUp, title: '导入 JSON', desc: '粘贴或选择 .json 曲谱文件', cls: 'bg-surface-3 text-fg', go: () => openImport() },
+                { icon: FileUp, title: '导入曲谱', desc: 'Guitar Pro 文件、复制的文字谱、JSON', cls: 'bg-surface-3 text-fg', go: () => openImport() },
                 { icon: PenLine, title: '从零制谱', desc: '和弦 + 节奏型，参数化生成六线谱', cls: 'bg-accent-gradient text-accent-fg', go: () => navigate('/edit/new') },
               ].map((a) => (
                 <button
@@ -272,6 +276,52 @@ function BottomNav() {
   )
 }
 
+/** 不在「AI 扒谱」页时，显示后台扒谱的进度；扒完提示回去查看 */
+function AiJobPill({ immersive }: { immersive: boolean }) {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const running = useAiJob((s) => s.running)
+  const unseen = useAiJob((s) => s.unseen)
+  const pages = useAiJob((s) => s.pages)
+  const failed = useAiJob((s) => !!s.error)
+  // 长谱要扒十几分钟：熄屏后系统可能把网页里的请求挂起，扒谱期间保持屏幕常亮
+  useKeepAwake(running)
+  const show = !pathname.startsWith('/ai') && (running || unseen)
+  const label = running
+    ? pages
+      ? `AI 正在扒谱 · 已完成 ${pages.done}/${pages.total} 页`
+      : 'AI 正在扒谱…'
+    : failed
+      ? 'AI 扒谱没有成功，点击查看'
+      : 'AI 扒谱完成，点击查看'
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.button
+          initial={{ opacity: 0, y: -12, x: '-50%' }}
+          animate={{ opacity: 1, y: 0, x: '-50%' }}
+          exit={{ opacity: 0, y: -12, x: '-50%' }}
+          onClick={() => navigate('/ai')}
+          className={cn(
+            'glass fixed left-1/2 z-50 flex max-w-[calc(100vw-32px)] items-center gap-2 rounded-full border border-line-2 px-4 py-2 text-[13px] font-medium shadow-[var(--shadow-lg)]',
+            // 谱面页、编辑页的顶栏下面；其它页面贴着屏幕顶部
+            immersive ? 'top-[calc(68px+var(--sat))]' : 'top-[calc(12px+var(--sat))]',
+          )}
+        >
+          {running ? (
+            <Loader2 className="size-4 shrink-0 animate-spin text-ai-1" />
+          ) : failed ? (
+            <CircleAlert className="size-4 shrink-0 text-err" />
+          ) : (
+            <CircleCheck className="size-4 shrink-0 text-ok" />
+          )}
+          <span className="truncate">{label}</span>
+        </motion.button>
+      )}
+    </AnimatePresence>
+  )
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const immersive = pathname.startsWith('/song/') || pathname.startsWith('/edit/')
@@ -282,6 +332,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
       {!immersive && <BottomNav />}
+      <AiJobPill immersive={immersive} />
     </div>
   )
 }

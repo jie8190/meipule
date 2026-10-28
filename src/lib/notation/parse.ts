@@ -27,6 +27,37 @@ export function parseDur(s: string): DurSpec | null {
   return { base: parseInt(m[1], 10), dots: m[2].length, triplet: !!m[3] }
 }
 
+/** 能直接写出来的时值（tick → 记号），从长到短 */
+const DUR_TOKENS: [number, string][] = (() => {
+  const out: [number, string][] = []
+  for (const base of [1, 2, 4, 8, 16, 32])
+    for (const [dots, triplet] of [
+      [0, false],
+      [1, false],
+      [2, false],
+      [0, true],
+    ] as const) {
+      const t = durTicks({ base, dots, triplet })
+      if (!out.some(([x]) => x === t)) out.push([t, `${base}${'.'.repeat(dots)}${triplet ? 't' : ''}`])
+    }
+  return out.sort((a, b) => b[0] - a[0])
+})()
+
+/** 把任意长度拆成几个能写出来的时值（第一个给音符，其余用延音 - 补上） */
+export function splitDuration(ticks: number): string[] {
+  const exact = DUR_TOKENS.find(([t]) => t === ticks)
+  if (exact) return [exact[1]]
+  const out: string[] = []
+  let left = ticks
+  for (let guard = 0; left > 0 && guard < 16; guard++) {
+    const fit = DUR_TOKENS.find(([t]) => t <= left)
+    if (!fit) break
+    out.push(fit[1])
+    left -= fit[0]
+  }
+  return out.length ? out : ['32']
+}
+
 /** 由 tick 反推最接近的显示时值 */
 export function ticksToDurSpec(ticks: number): DurSpec {
   const cands: DurSpec[] = []

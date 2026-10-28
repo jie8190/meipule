@@ -5,6 +5,7 @@ import { useSettings, type Accent } from '@/store/settings'
 import { useUi } from '@/store/ui'
 import { db, exportBackup, seedSamples } from '@/lib/db'
 import { downloadText } from '@/lib/importer'
+import { isNative } from '@/lib/native'
 import { AiSettingsModal } from '@/components/AiSettingsModal'
 import { Button, cn, confirmDialog, Segmented, Slider, Switch, toast } from '@/components/ui'
 
@@ -20,17 +21,20 @@ interface InstallPrompt extends Event {
   prompt: () => Promise<void>
 }
 
-function Row({ title, desc, children }: { title: ReactNode; desc?: ReactNode; children: ReactNode }) {
+function Row({ title, desc, children }: { title: ReactNode; desc?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-6 py-3.5">
+    <div className="flex items-center justify-between gap-4 py-3.5 sm:gap-6">
       <div className="min-w-0">
         <div className="text-sm font-medium">{title}</div>
-        {desc && <div className="mt-0.5 text-xs text-fg-3">{desc}</div>}
+        {desc && <div className="mt-0.5 text-xs leading-relaxed text-fg-3">{desc}</div>}
       </div>
-      <div className="shrink-0">{children}</div>
+      {children && <div className="shrink-0">{children}</div>}
     </div>
   )
 }
+
+/** 已经装到桌面 / 主屏幕（以独立窗口运行）的网页版 */
+const standalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -204,18 +208,31 @@ export default function Settings() {
       </Group>
 
       <Group title="关于">
-        <Row title="安装到桌面 / 主屏幕" desc="像原生 App 一样离线使用">
-          {install ? (
-            <Button size="sm" variant="primary" icon={<Smartphone className="size-4" />} onClick={() => install.prompt().then(() => setInstall(null))}>
-              安装
-            </Button>
-          ) : (
-            <span className="max-w-48 text-right text-xs text-fg-3">用浏览器菜单「安装应用 / 添加到主屏幕」</span>
-          )}
-        </Row>
-        <Row title="没谱了" desc="本地优先的吉他谱 App · 所有数据只保存在你的设备上">
-          <span className="text-xs text-fg-3">v1.0.0</span>
-        </Row>
+        <div className="flex items-center gap-4 py-4">
+          <img src="icon.svg" alt="" className="size-12 shrink-0 rounded-[14px]" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline gap-x-2">
+              <span className="text-base font-semibold">没谱了</span>
+              <span className="text-xs tabular-nums text-fg-3">
+                v{__APP_VERSION__} · {isNative ? '安卓 App' : standalone ? '已安装的网页版' : '网页版'}
+              </span>
+            </div>
+            <div className="mt-0.5 text-xs leading-relaxed text-fg-3">本地优先的吉他谱 App，所有数据只保存在你的设备上</div>
+          </div>
+        </div>
+        {/* App 里和已经装到桌面的网页版不需要再提示安装 */}
+        {!isNative && !standalone && (
+          <Row
+            title="安装到桌面 / 主屏幕"
+            desc={install ? '像原生 App 一样离线使用' : '在浏览器菜单里选「安装应用」或「添加到主屏幕」，之后可以离线使用'}
+          >
+            {install && (
+              <Button size="sm" variant="primary" icon={<Smartphone className="size-4" />} onClick={() => install.prompt().then(() => setInstall(null))}>
+                安装
+              </Button>
+            )}
+          </Row>
+        )}
       </Group>
       <AiSettingsModal open={keyOpen} onClose={() => setKeyOpen(false)} />
     </div>

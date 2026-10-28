@@ -4,20 +4,17 @@ import { AnimatePresence, motion } from 'motion/react'
 import { WandSparkles, ImagePlus, X, Copy, Check, KeyRound, Square, Save, PenLine, Eye, EyeOff, Bot, ExternalLink, RefreshCw, ClipboardPaste, Loader2 } from 'lucide-react'
 import { useSettings } from '@/store/settings'
 import { useUi } from '@/store/ui'
-import { buildPrompt, formatSongJson, pageInstructions, parseLenient, type TranscribeMode } from '@/lib/notation/spec'
-import { mergePages, songHeader } from '@/lib/notation/merge'
-import type { SongDoc } from '@/lib/notation/types'
+import { buildPrompt, formatSongJson, type TranscribeMode } from '@/lib/notation/spec'
 import { analyzeImport, stashDraft } from '@/lib/importer'
 import { createSong } from '@/lib/db'
-import { describeSources, loadSource, transcribe, type AiPhase, type AiSource } from '@/lib/ai'
+import { describeSources, type AiPhase, type AiSource } from '@/lib/ai'
+import { addAiFiles, resetAiJob, runAiJob, stopAiJob, useAiJob } from '@/store/aiJob'
 import { AiSettingsModal } from '@/components/AiSettingsModal'
 import { isTouch } from '@/lib/native'
 import { CodeEditor } from '@/components/CodeEditor'
 import { DiagnosticsList, ScoreSummary } from '@/components/Diagnostics'
 import { ScoreView } from '@/components/score/ScoreView'
 import { Button, cn, Field, Input, Segmented, Textarea, toast } from '@/components/ui'
-
-const DRAFT_KEY = 'meipule:ai-result'
 
 const AI_SITES = [
   { name: 'Claude', url: 'https://claude.ai/new' },
@@ -33,53 +30,27 @@ export default function AiPage() {
   const ai = useSettings((s) => s.ai)
   const pending = useUi((s) => s.pendingImages)
   const setPending = useUi((s) => s.setPendingImages)
-  const [sources, setSources] = useState<AiSource[]>([])
-  const [loadingImages, setLoadingImages] = useState(false)
+  // 扒谱任务放在全局：离开这个页面任务照常进行，回来时图片、进度、结果都还在
+  const job = useAiJob()
+  const { sources, loadingImages, text, mode, extra, result, running, phase, thinking, timing, error, pages } = job
   const parts = useMemo(() => sources.flatMap((s) => s.parts), [sources])
-  const [text, setText] = useState('')
-  const [mode, setMode] = useState<TranscribeMode>('auto')
-  const [extra, setExtra] = useState('')
+  const setSources = (v: AiSource[]) => job.set({ sources: v })
+  const setText = (v: string) => job.set({ text: v })
+  const setMode = (v: TranscribeMode) => job.set({ mode: v })
+  const setExtra = (v: string) => job.set({ extra: v })
+  const setResult = (v: string) => job.set({ result: v })
   const [copied, setCopied] = useState(false)
-  const [result, setResult] = useState(() => sessionStorage.getItem(DRAFT_KEY) ?? '')
   const [debounced, setDebounced] = useState(result)
-  const [running, setRunning] = useState(false)
-  const [phase, setPhase] = useState<AiPhase>('connecting')
-  const [thinking, setThinking] = useState('')
-  const [timing, setTiming] = useState<{ start: number; firstText?: number; end?: number } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  /** 分页扒谱的进度 */
-  const [pages, setPages] = useState<{ done: number; total: number } | null>(null)
   const [keyOpen, setKeyOpen] = useState(false)
   const [showPreview, setShowPreview] = useState(true)
-  const abortRef = useRef<AbortController | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
+  const addFiles = (files: File[]) => addAiFiles(files)
 
-  const addFiles = async (files: File[]) => {
-    const imgs = files.filter((f) => f.type.startsWith('image/'))
-    if (!imgs.length) return
-    setLoadingImages(true)
-    try {
-      const loaded: AiSource[] = []
-      for (const f of imgs) loaded.push(await loadSource(f))
-      setSources((cur) => {
-        // 接口一般限制单次 100 张以内：一张图切出来的段数留些余量；多张图会分页扒，总数可以多一些
-        const tooLong = loaded.filter((s) => s.parts.length > 60)
-        if (tooLong.length) toast.warn('有截图太长了（切出来超过 60 段），请分成几张截图再上传')
-        let total = 0
-        const next = [...cur, ...loaded.filter((s) => s.parts.length <= 60)]
-        const kept = next.filter((s) => (total += s.parts.length) <= 200)
-        if (kept.length < next.length) toast.warn('图片太多了，多出的已忽略，可以分几次扒')
-        return kept
-      })
-      const sliced = loaded.filter((s) => s.parts.length > 1)
-      if (sliced.length) toast.info(`长截图已自动切成 ${sliced.reduce((a, s) => a + s.parts.length, 0)} 段，保证小字清晰`)
-    } catch (e) {
-      toast.err((e as Error).message)
-    } finally {
-      setLoadingImages(false)
-    }
-  }
+  // 回到这个页面就算看过了
+  useEffect(() => {
+    useAiJob.getState().set({ unseen: false })
+  }, [running])
 
   useEffect(() => {
     if (pending.length) {
@@ -102,7 +73,6 @@ export default function AiPage() {
   }, [])
 
   useEffect(() => {
-    sessionStorage.setItem(DRAFT_KEY, result)
     const t = setTimeout(() => setDebounced(result), running ? 900 : 250)
     return () => clearTimeout(t)
   }, [result, running])
@@ -110,7 +80,6 @@ export default function AiPage() {
   const analysis = useMemo(() => analyzeImport(debounced), [debounced])
   // 复制给聊天 AI 时用户上传的是原图，所以不带切片说明；直连时发的是切片
   const prompt = useMemo(() => buildPrompt({ mode, extra, hasImages: sources.length > 0, text }), [mode, extra, sources.length, text])
-  const directPrompt = useMemo(() => buildPrompt({ mode, extra, hasImages: sources.length > 0, text, imageGuide: describeSources(sources) }), [mode, extra, sources, text])
   const hasKey = !!ai.apiKey.trim()
   const ready = (sources.length > 0 || text.trim().length > 0) && !loadingImages
 
@@ -125,116 +94,9 @@ export default function AiPage() {
     }
   }
 
-  // 页数多时一次发给模型，它往往只读个大概就放弃了：改成一页一页扒，再拼起来
-  const pageMode = sources.length >= 3 || (sources.length === 2 && parts.length > 12)
-
-  /** 分页扒谱：先扒第 1 页拿到全曲信息，其余页同时扒 3 页，扒完一页合并一页 */
-  const runPages = async (ctrl: AbortController) => {
-    const total = sources.length
-    const docs: (Partial<SongDoc> | null)[] = Array(total).fill(null)
-    const failed: { page: number; msg: string }[] = []
-    let done = 0
-    setPages({ done, total })
-    const promptOf = (k: number, header?: unknown) =>
-      `${buildPrompt({ mode, extra, hasImages: true, imageGuide: describeSources([sources[k - 1]]) })}
-
-${pageInstructions(k, total, header)}`
-    const one = async (k: number, header?: unknown): Promise<Partial<SongDoc> | null> => {
-      let msg = ''
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const full = await transcribe({
-            settings: ai,
-            prompt: promptOf(k, header),
-            images: sources[k - 1].parts,
-            signal: ctrl.signal,
-            onPhase: k === 1 ? setPhase : undefined,
-            onThinking: k === 1 ? setThinking : undefined,
-            onText: () => {},
-          })
-          const parsed = parseLenient(full)
-          if (parsed.value && typeof parsed.value === 'object' && !Array.isArray(parsed.value)) return parsed.value as Partial<SongDoc>
-          msg = parsed.error ?? 'AI 的输出不是 JSON'
-        } catch (e) {
-          if (ctrl.signal.aborted) throw new Error('已取消')
-          msg = (e as Error).message
-        }
-      }
-      failed.push({ page: k, msg })
-      return null
-    }
-    const finishPage = () => {
-      setPages({ done: ++done, total })
-      const ok = docs.filter((d): d is Partial<SongDoc> => !!d)
-      if (ok.length) setResult(formatSongJson(mergePages(ok)))
-    }
-    docs[0] = await one(1)
-    if (!docs[0]) throw new Error(`第 1 页没有扒成功：${failed[0]?.msg}`)
-    setTiming((x) => (x ? { ...x, firstText: Date.now() } : x))
-    finishPage()
-    const header = songHeader(docs[0])
-    let next = 2
-    const worker = async () => {
-      while (next <= total) {
-        const k = next++
-        docs[k - 1] = await one(k, header)
-        finishPage()
-      }
-    }
-    await Promise.all([worker(), worker(), worker()])
-    const merged = mergePages(docs.filter((d): d is Partial<SongDoc> => !!d))
-    setResult(formatSongJson(merged))
-    if (failed.length) {
-      const list = failed.map((f) => f.page).sort((a, b) => a - b)
-      setError(`第 ${list.join('、')} 页没有扒成功（${failed[0].msg}），其余 ${total - list.length} 页已经合并好了。可以把这几页单独再扒一次，在编辑器里补进去`)
-    } else toast.ok(`${total} 页都扒好了：「${merged.title}」`)
-  }
-
-  const run = async (customPrompt?: string, withImages = false) => {
+  const run = (customPrompt?: string, withImages = false) => {
     if (!hasKey) return setKeyOpen(true)
-    setError(null)
-    setRunning(true)
-    setResult('')
-    setThinking('')
-    setPhase('connecting')
-    setPages(null)
-    setTiming({ start: Date.now() })
-    const ctrl = new AbortController()
-    abortRef.current = ctrl
-    let gotText = false
-    try {
-      if (!customPrompt && pageMode) {
-        await runPages(ctrl)
-        return
-      }
-      const full = await transcribe({
-        settings: ai,
-        prompt: customPrompt ?? directPrompt,
-        images: customPrompt && !withImages ? [] : parts,
-        signal: ctrl.signal,
-        onPhase: setPhase,
-        onThinking: setThinking,
-        onText: (t) => {
-          if (!gotText && t) {
-            gotText = true
-            setTiming((x) => (x ? { ...x, firstText: Date.now() } : x))
-          }
-          setResult(t)
-        },
-      })
-      const a = analyzeImport(full)
-      // 解析成功就整理成干净的 JSON（去掉 ```json 围栏和多余的说明文字）
-      setResult(a.kind === 'song' ? formatSongJson(a.doc) : full)
-      if (a.kind === 'song') toast.ok(`扒好了：「${a.score.title}」`)
-      else if (a.kind === 'error') setError('AI 的输出不是有效的 JSON：' + a.message)
-    } catch (e) {
-      const msg = (e as Error).message
-      if (msg !== '已取消') setError(msg)
-    } finally {
-      setRunning(false)
-      setTiming((x) => (x ? { ...x, end: Date.now() } : x))
-      abortRef.current = null
-    }
+    void runAiJob(ai, customPrompt, withImages)
   }
 
   const fixWithAi = () => {
@@ -269,11 +131,12 @@ ${result}`
     if (analysis.kind === 'song') {
       const id = await createSong(analysis.doc, 'ai')
       toast.ok(`已保存「${analysis.score.title}」`)
-      sessionStorage.removeItem(DRAFT_KEY)
+      resetAiJob()
       navigate(`/song/${id}`)
     } else if (analysis.kind === 'songs') {
       for (const d of analysis.docs) await createSong(d, 'ai')
       toast.ok(`已保存 ${analysis.docs.length} 首`)
+      resetAiJob()
       navigate('/')
     }
   }
@@ -433,7 +296,7 @@ ${result}`
                   {hasKey ? `${ai.provider === 'anthropic' ? 'Claude' : 'OpenAI 兼容'} · ${ai.model}` : '填写 API Key 后，在这里直接扒谱，结果实时流式输出。'}
                 </p>
                 {running ? (
-                  <Button className="mt-3 w-full" variant="danger" icon={<Square className="size-3.5 fill-current" />} onClick={() => abortRef.current?.abort()}>
+                  <Button className="mt-3 w-full" variant="danger" icon={<Square className="size-3.5 fill-current" />} onClick={stopAiJob}>
                     停止
                   </Button>
                 ) : (
@@ -491,7 +354,7 @@ ${result}`
                 imageBytes={parts.reduce((a, i) => a + i.data.length * 0.75, 0)}
                 host={aiHost(ai.provider, ai.baseUrl)}
                 directClaude={ai.provider === 'anthropic' && !ai.baseUrl.trim()}
-                onStop={() => abortRef.current?.abort()}
+                onStop={stopAiJob}
               />
             )}
             <div className="relative mt-3 h-[340px] overflow-hidden rounded-2xl border border-line bg-[color-mix(in_oklab,var(--fg)_2%,transparent)]">

@@ -1,6 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, type ComponentType } from 'react'
 import { HashRouter, Route, Routes, useLocation } from 'react-router'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion } from 'motion/react'
 import { Shell } from './components/Shell'
 import { ConfirmHost, Toaster, Spinner } from './components/ui'
 import { ImportDialog } from './components/ImportDialog'
@@ -11,19 +11,40 @@ import { resolvedTheme, useSettings } from './store/settings'
 import { seedSamples } from './lib/db'
 import { audio } from './lib/audio/engine'
 import { initNative, setSystemBarsTheme } from './lib/native'
+import { finishBoot } from './lib/boot'
 import Library from './pages/Library'
 import SongPage from './pages/SongPage'
 
-const Editor = lazy(() => import('./pages/Editor'))
-const AiPage = lazy(() => import('./pages/AiPage'))
-const Setlists = lazy(() => import('./pages/Setlists'))
-const SetlistDetail = lazy(() => import('./pages/SetlistDetail'))
-const Tuner = lazy(() => import('./pages/Tuner'))
-const Metronome = lazy(() => import('./pages/Metronome'))
-const ChordLibrary = lazy(() => import('./pages/ChordLibrary'))
-const ToolsHub = lazy(() => import('./pages/ToolsHub'))
-const SettingsPage = lazy(() => import('./pages/Settings'))
-const Docs = lazy(() => import('./pages/Docs'))
+/**
+ * 按需加载的页面。启动时会全部预加载；加载好以后直接渲染组件本身，
+ * 不再经过 React.lazy（它即使代码已就绪，第一次渲染也会先挂起一下，闪出加载圈）。
+ */
+const preloaders: (() => Promise<unknown>)[] = []
+function page(load: () => Promise<{ default: ComponentType }>) {
+  let Loaded: ComponentType | null = null
+  const loadOnce = () => load().then((m) => ((Loaded = m.default), m))
+  const Lazy = lazy(loadOnce)
+  preloaders.push(loadOnce)
+  return function Page() {
+    return Loaded ? <Loaded /> : <Lazy />
+  }
+}
+
+const Editor = page(() => import('./pages/Editor'))
+const AiPage = page(() => import('./pages/AiPage'))
+const Setlists = page(() => import('./pages/Setlists'))
+const SetlistDetail = page(() => import('./pages/SetlistDetail'))
+const Tuner = page(() => import('./pages/Tuner'))
+const Metronome = page(() => import('./pages/Metronome'))
+const ChordLibrary = page(() => import('./pages/ChordLibrary'))
+const ToolsHub = page(() => import('./pages/ToolsHub'))
+const SettingsPage = page(() => import('./pages/Settings'))
+const Docs = page(() => import('./pages/Docs'))
+
+function preloadPages(onProgress: (p: number) => void) {
+  let n = 0
+  return Promise.all(preloaders.map((f) => f().catch(() => null).finally(() => onProgress(++n / preloaders.length))))
+}
 
 function ThemeSync() {
   const theme = useSettings((s) => s.theme)
@@ -62,38 +83,40 @@ function PageFallback() {
 function AnimatedRoutes() {
   const location = useLocation()
   const key = location.pathname.split('/').slice(0, 2).join('/')
+  // 换页时回到顶部（各页面共用同一个滚动容器）
+  useLayoutEffect(() => {
+    document.getElementById('main-scroll')?.scrollTo({ top: 0 })
+  }, [key])
+  // 新页面直接出现、轻轻淡入；不等旧页面淡出，切换更跟手
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={key}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        className="min-h-full"
-      >
-        <ErrorBoundary resetKey={location.pathname}>
-        <Suspense fallback={<PageFallback />}>
-          <Routes location={location}>
-            <Route path="/" element={<Library />} />
-            <Route path="/favorites" element={<Library favorites />} />
-            <Route path="/song/:id" element={<SongPage />} />
-            <Route path="/edit/:id" element={<Editor />} />
-            <Route path="/ai" element={<AiPage />} />
-            <Route path="/setlists" element={<Setlists />} />
-            <Route path="/setlists/:id" element={<SetlistDetail />} />
-            <Route path="/tools" element={<ToolsHub />} />
-            <Route path="/tools/tuner" element={<Tuner />} />
-            <Route path="/tools/metronome" element={<Metronome />} />
-            <Route path="/tools/chords" element={<ChordLibrary />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/docs" element={<Docs />} />
-            <Route path="*" element={<Library />} />
-          </Routes>
-        </Suspense>
-        </ErrorBoundary>
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={key}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+      className="min-h-full"
+    >
+      <ErrorBoundary resetKey={location.pathname}>
+      <Suspense fallback={<PageFallback />}>
+        <Routes location={location}>
+          <Route path="/" element={<Library />} />
+          <Route path="/favorites" element={<Library favorites />} />
+          <Route path="/song/:id" element={<SongPage />} />
+          <Route path="/edit/:id" element={<Editor />} />
+          <Route path="/ai" element={<AiPage />} />
+          <Route path="/setlists" element={<Setlists />} />
+          <Route path="/setlists/:id" element={<SetlistDetail />} />
+          <Route path="/tools" element={<ToolsHub />} />
+          <Route path="/tools/tuner" element={<Tuner />} />
+          <Route path="/tools/metronome" element={<Metronome />} />
+          <Route path="/tools/chords" element={<ChordLibrary />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/docs" element={<Docs />} />
+          <Route path="*" element={<Library />} />
+        </Routes>
+      </Suspense>
+      </ErrorBoundary>
+    </motion.div>
   )
 }
 
@@ -101,6 +124,7 @@ export default function App() {
   useEffect(() => {
     void seedSamples()
     initNative()
+    finishBoot(preloadPages)
   }, [])
   return (
     <HashRouter>

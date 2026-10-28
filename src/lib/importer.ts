@@ -1,6 +1,7 @@
 // 导入分析：把任意文本识别为 单曲 / 多曲 / 备份，并编译校验
 import { compileSong } from './notation/compile'
 import { parseLenient } from './notation/spec'
+import { chordSheetToSong } from './notation/fromText'
 import type { Score, SongDoc } from './notation/types'
 import type { Backup } from './db'
 import { isNative, shareTextFile } from './native'
@@ -8,7 +9,8 @@ import { isNative, shareTextFile } from './native'
 export type ImportAnalysis =
   | { kind: 'empty' }
   | { kind: 'error'; message: string }
-  | { kind: 'song'; doc: SongDoc; score: Score }
+  /** from：不是 JSON、是从文字谱转换来的；notes：转换时略过或估算的地方 */
+  | { kind: 'song'; doc: SongDoc; score: Score; from?: 'text'; notes?: string[] }
   | { kind: 'songs'; docs: SongDoc[]; scores: Score[] }
   | { kind: 'backup'; backup: Backup }
 
@@ -18,6 +20,18 @@ function looksLikeSong(v: unknown): v is SongDoc {
 
 export function analyzeImport(text: string): ImportAnalysis {
   if (!text.trim()) return { kind: 'empty' }
+  const json = analyzeJson(text)
+  if (json.kind !== 'error') return json
+  // 不是曲谱 JSON：试试文字谱（和弦在歌词上方、[C] 内嵌、ChordPro、文字六线谱）
+  const sheet = chordSheetToSong(text)
+  if (sheet) return { kind: 'song', doc: sheet.doc, score: compileSong(sheet.doc), from: 'text', notes: sheet.notes }
+  // 看起来像 JSON 就报 JSON 的错，否则提示能粘贴什么
+  return /^\s*(```|\{|\[\s*[{\[]|\[\s*$)/.test(text)
+    ? json
+    : { kind: 'error', message: '没认出来。可以粘贴：「和弦在上、歌词在下」的弹唱谱、[C] 内嵌和弦的歌词、ChordPro、文字六线谱，或曲谱 JSON' }
+}
+
+function analyzeJson(text: string): ImportAnalysis {
   const { value, error } = parseLenient(text)
   if (error) return { kind: 'error', message: error }
   if (value && typeof value === 'object' && (value as Backup).app === 'meipule' && Array.isArray((value as Backup).songs)) {

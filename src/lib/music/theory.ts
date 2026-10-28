@@ -133,7 +133,9 @@ export function resolveTuning(t: unknown): { notes: number[]; name: string; erro
   if (Array.isArray(t) && t.length === 6) {
     const notes = t.map((n) => (typeof n === 'number' ? n : noteNameToMidi(String(n))))
     if (notes.every((n): n is number => typeof n === 'number')) {
-      return { notes, name: t.map((n) => (typeof n === 'number' ? midiToNoteName(n) : String(n).replace(/\d/g, ''))).join('') }
+      const preset = TUNINGS.find((p) => p.notes.join() === notes.join())
+      if (preset) return { notes, name: preset.id === 'standard' ? '标准' : preset.name }
+      return { notes, name: notes.map((n) => midiToNoteName(n).replace(/-?\d/g, '')).join('') }
     }
   }
   return { notes: STANDARD_TUNING, name: '标准', error: '调弦格式应为 6 个音名数组（低音弦在前），如 ["D2","A2","D3","G3","B3","E4"]' }

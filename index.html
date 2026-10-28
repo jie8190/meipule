@@ -19,8 +19,37 @@
         document.documentElement.dataset.accent = s.accent || 'amber'
       } catch (e) {}
     </script>
+    <style>
+      /* 启动页：和安卓原生启动图同样的布局，原生启动页淡出时无缝衔接；预加载完各页面再淡出 */
+      #boot { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: min(5vmin, 22px); background: radial-gradient(90vmin 70vmin at 50% 42%, #2a1c10 0%, #08080c 70%);
+        font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; transition: opacity 0.3s ease; }
+      [data-theme='light'] #boot { background: radial-gradient(90vmin 70vmin at 50% 42%, #f8e3c4 0%, #f4f1ea 70%); }
+      #boot svg { width: min(26vmin, 120px); height: min(29vmin, 134px); }
+      #boot .name { color: #efedf6; font-size: min(7.5vmin, 34px); font-weight: 700; letter-spacing: 0.08em; }
+      [data-theme='light'] #boot .name { color: #1d1b24; }
+      #boot .sub { color: #6e6b80; font-size: min(3vmin, 14px); letter-spacing: 0.2em; }
+      #boot .bar { position: absolute; left: 50%; bottom: 22%; width: min(34vmin, 150px); height: 3px; margin-left: calc(min(34vmin, 150px) / -2);
+        border-radius: 3px; background: rgba(128, 128, 140, 0.18); overflow: hidden; }
+      #boot .bar i { display: block; height: 100%; width: 6%; border-radius: 3px; background: linear-gradient(90deg, #f5b041, #ff7849); transition: width 0.25s ease; }
+      #boot.done { opacity: 0; pointer-events: none; }
+    </style>
   </head>
   <body>
+    <div id="boot" aria-hidden="true">
+      <svg viewBox="80 70 352 390">
+        <defs>
+          <linearGradient id="boot-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5b041"/><stop offset="1" stop-color="#ff7849"/></linearGradient>
+          <clipPath id="boot-c"><path d="M256 448C200 392 96 286 96 190c0-66 72-110 160-110s160 44 160 110c0 96-104 202-160 258Z"/></clipPath>
+        </defs>
+        <path d="M256 448C200 392 96 286 96 190c0-66 72-110 160-110s160 44 160 110c0 96-104 202-160 258Z" fill="url(#boot-g)"/>
+        <g clip-path="url(#boot-c)" stroke="#fff" stroke-opacity=".55" stroke-linecap="round"><line x1="176" y1="60" x2="176" y2="470" stroke-width="7.0"/><line x1="208" y1="60" x2="208" y2="470" stroke-width="6.1"/><line x1="240" y1="60" x2="240" y2="470" stroke-width="5.2"/><line x1="272" y1="60" x2="272" y2="470" stroke-width="4.3"/><line x1="304" y1="60" x2="304" y2="470" stroke-width="3.4"/><line x1="336" y1="60" x2="336" y2="470" stroke-width="2.5"/></g>
+        <circle cx="256" cy="200" r="46" fill="none" stroke="#fff" stroke-width="16"/>
+      </svg>
+      <div class="name">没谱了</div>
+      <div class="sub">本地吉他谱</div>
+      <div class="bar"><i></i></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

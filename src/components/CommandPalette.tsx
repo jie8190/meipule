@@ -70,7 +70,7 @@ export function CommandPalette() {
       {
         id: 'import',
         group: '操作',
-        label: '导入 JSON',
+        label: '导入曲谱（Guitar Pro / 文字谱 / JSON）',
         icon: <FileUp className="size-4" />,
         run: () => {
           setOpen(false)

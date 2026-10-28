@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router'
 import { AnimatePresence, motion } from 'motion/react'
 import { FileUp } from 'lucide-react'
 import { useUi } from '@/store/ui'
+import { SCORE_FILE_RE } from '@/lib/notation/fromScoreFile'
+import { toast } from './ui'
+import { readImportFile } from './ImportDialog'
 
-/** 把 JSON 拖到任意位置导入；拖入图片直接开始 AI 扒谱 */
+/** 把曲谱文件（JSON、文字谱、Guitar Pro、MusicXML）拖到任意位置导入；拖入图片直接开始 AI 扒谱 */
 export function GlobalDrop() {
   const [over, setOver] = useState(false)
   const navigate = useNavigate()
@@ -37,12 +40,17 @@ export function GlobalDrop() {
       setOver(false)
       const files = [...(e.dataTransfer?.files ?? [])]
       const images = files.filter((f) => f.type.startsWith('image/'))
-      const json = files.find((f) => /\.(json|txt)$/i.test(f.name) || f.type === 'application/json')
+      const doc = files.find((f) => SCORE_FILE_RE.test(f.name) || /\.(json|txt|cho|chopro|chordpro|crd|pro)$/i.test(f.name) || f.type === 'application/json')
       if (images.length) {
         useUi.getState().setPendingImages(images)
         navigate('/ai')
-      } else if (json) {
-        useUi.getState().openImport(await json.text())
+      } else if (doc) {
+        try {
+          const r = await readImportFile(doc)
+          useUi.getState().openImport(r.text, SCORE_FILE_RE.test(doc.name) ? r.notes : null)
+        } catch (e) {
+          toast.err((e as Error).message)
+        }
       }
     }
     window.addEventListener('dragenter', onEnter)
@@ -74,7 +82,7 @@ export function GlobalDrop() {
               <FileUp className="size-7" />
             </span>
             <div className="text-lg font-semibold">松手导入</div>
-            <div className="text-sm text-fg-2">JSON 曲谱直接导入；图片会交给 AI 扒谱</div>
+            <div className="text-sm text-fg-2">曲谱文件直接导入（Guitar Pro、文字谱、JSON）；图片会交给 AI 扒谱</div>
           </motion.div>
         </motion.div>
       )}

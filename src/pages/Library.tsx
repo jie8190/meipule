@@ -106,8 +106,8 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
             <span className="flex size-11 items-center justify-center rounded-2xl bg-surface-3 text-fg">
               <FileUp className="size-5" />
             </span>
-            <div className="mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">导入 JSON</div>
-            <div className="mt-1 hidden text-[13px] leading-relaxed text-fg-2 sm:block">粘贴 AI 输出，或拖拽 .json 文件到窗口任意位置</div>
+            <div className="mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">导入曲谱</div>
+            <div className="mt-1 hidden text-[13px] leading-relaxed text-fg-2 sm:block">Guitar Pro 文件、复制来的文字谱或 JSON，本地转换</div>
             <ArrowRight className="absolute bottom-5 right-5 hidden size-4 text-fg-3 transition group-hover:translate-x-1 group-hover:text-fg sm:block" />
           </motion.button>
           <motion.button whileHover={{ y: -3 }} onClick={() => navigate('/edit/new')} className="group relative overflow-hidden rounded-[20px] border border-line bg-surface p-3.5 text-left sm:rounded-[24px] sm:p-5">

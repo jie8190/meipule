@@ -4,11 +4,15 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'node:url'
+import { readFileSync } from 'node:fs'
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
 
 // mode === 'capacitor'：打包进安卓 App 时不需要 Service Worker（资源本来就在本地，
 // 而且 SW 缓存会让 App 升级后仍显示旧版本）
 export default defineConfig(({ mode }) => ({
   base: './',
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   // 网页版和安卓 App 分开输出，打 APK 不会覆盖网页版的 dist（否则浏览器里的旧缓存永远不更新）
   build: { outDir: mode === 'capacitor' ? 'dist-app' : 'dist' },
   resolve: {
