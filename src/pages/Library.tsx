@@ -7,6 +7,7 @@ import { db, seedSamples, type SongRecord } from '@/lib/db'
 import { useUi } from '@/store/ui'
 import { greeting, timeAgo, todayLabel } from '@/lib/format'
 import { Cover } from '@/components/Cover'
+import { Logo } from '@/components/Shell'
 import { SongCard, SongRow } from '@/components/SongCard'
 import { Button, Chip, cn, Input, Segmented, Select, toast } from '@/components/ui'
 
@@ -62,7 +63,10 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
       {/* 头部 */}
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="text-[13px] font-medium text-fg-3">{todayLabel()}</div>
+          <div className="flex items-center gap-2 text-[13px] font-medium text-fg-3">
+            <Logo size={20} className="lg:hidden" />
+            {todayLabel()}
+          </div>
           <h1 className="mt-1.5 text-[34px] font-bold leading-[1.1] tracking-tight sm:text-[42px]">
             {favorites ? (
               <>
@@ -99,24 +103,25 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
               <WandSparkles className="size-5" />
             </span>
             <div className="relative mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">AI 扒谱</div>
-            <div className="relative mt-1 hidden text-[13px] leading-relaxed text-fg-2 sm:block">截图或拍照，让 AI 转成可播放的曲谱</div>
+            <div className="relative mt-1 hidden pr-6 text-[13px] leading-relaxed text-fg-2 sm:block">截图或拍照，让 AI 转成可播放的曲谱</div>
             <ArrowRight className="absolute bottom-5 right-5 hidden size-4 text-fg-3 transition group-hover:translate-x-1 group-hover:text-fg sm:block" />
           </motion.button>
           <motion.button whileHover={{ y: -3 }} onClick={() => openImport()} className="group relative overflow-hidden rounded-[20px] border border-line bg-surface p-3.5 text-left sm:rounded-[24px] sm:p-5">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-surface-3 text-fg">
+            <div className="pointer-events-none absolute -right-16 -top-16 size-56 bg-[radial-gradient(closest-side,#3fb7ff,transparent)] opacity-15 transition group-hover:opacity-30" />
+            <span className="relative flex size-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#3fe0b0,#3fb7ff)] text-[#03140f] shadow-[0_8px_24px_-8px_rgba(63,183,255,0.6)]">
               <FileUp className="size-5" />
             </span>
-            <div className="mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">导入曲谱</div>
-            <div className="mt-1 hidden text-[13px] leading-relaxed text-fg-2 sm:block">Guitar Pro 文件、复制来的文字谱或 JSON，本地转换</div>
+            <div className="relative mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">导入曲谱</div>
+            <div className="relative mt-1 hidden pr-6 text-[13px] leading-relaxed text-fg-2 sm:block">Guitar Pro、复制来的文字谱或 JSON，本地转换</div>
             <ArrowRight className="absolute bottom-5 right-5 hidden size-4 text-fg-3 transition group-hover:translate-x-1 group-hover:text-fg sm:block" />
           </motion.button>
           <motion.button whileHover={{ y: -3 }} onClick={() => navigate('/edit/new')} className="group relative overflow-hidden rounded-[20px] border border-line bg-surface p-3.5 text-left sm:rounded-[24px] sm:p-5">
             <div className="pointer-events-none absolute -right-16 -top-16 size-56 bg-[radial-gradient(closest-side,var(--accent),transparent)] opacity-20 transition group-hover:opacity-35" />
-            <span className="relative flex size-11 items-center justify-center rounded-2xl bg-accent-gradient text-accent-fg">
+            <span className="relative flex size-11 items-center justify-center rounded-2xl bg-accent-gradient text-accent-fg shadow-[0_8px_24px_-8px_var(--accent-glow)]">
               <PenLine className="size-5" />
             </span>
             <div className="relative mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">参数化制谱</div>
-            <div className="relative mt-1 hidden text-[13px] leading-relaxed text-fg-2 sm:block">写下和弦进行 + 节奏型，六线谱自动生成</div>
+            <div className="relative mt-1 hidden pr-6 text-[13px] leading-relaxed text-fg-2 sm:block">写下和弦进行 + 节奏型，六线谱自动生成</div>
             <ArrowRight className="absolute bottom-5 right-5 hidden size-4 text-fg-3 transition group-hover:translate-x-1 group-hover:text-fg sm:block" />
           </motion.button>
         </section>
@@ -176,7 +181,7 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
               <Select<Sort>
                 value={sort}
                 onChange={setSort}
-                className="h-9 text-[13px]"
+                size="sm"
                 options={[
                   { value: 'updated', label: '最近更新' },
                   { value: 'opened', label: '最近打开' },

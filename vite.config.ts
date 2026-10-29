@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { fileURLToPath } from 'node:url'
 import { readFileSync } from 'node:fs'
+import { BRAND_STOPS, MARK_VIEWBOX, markSvg } from './src/lib/brand'
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string }
 
@@ -19,6 +20,12 @@ export default defineConfig(({ mode }) => ({
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   plugins: [
+    // 启动页里的拨片图形和图标同源（src/lib/brand.ts），首屏 HTML 里直接带上，不用等 JS
+    {
+      name: 'brand-mark',
+      transformIndexHtml: (html) =>
+        html.replace(/<!--brand-mark[^>]*-->/, `<svg class="mark" viewBox="${MARK_VIEWBOX}">${markSvg('boot', BRAND_STOPS)}</svg>`),
+    },
     react(),
     tailwindcss(),
     VitePWA({
@@ -29,8 +36,8 @@ export default defineConfig(({ mode }) => ({
         name: '没谱了 · 本地吉他谱',
         short_name: '没谱了',
         description: '本地优先的吉他谱 App：参数化制谱、AI 扒谱、动态播放',
-        theme_color: '#0b0b10',
-        background_color: '#0b0b10',
+        theme_color: '#08080c',
+        background_color: '#08080c',
         display: 'standalone',
         orientation: 'any',
         lang: 'zh-CN',

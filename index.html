@@ -17,37 +17,100 @@
         if (t === 'system') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
         document.documentElement.dataset.theme = t
         document.documentElement.dataset.accent = s.accent || 'amber'
+        // 安卓 App 里原生启动图已经展示过静态画面，启动页跳过入场动画，直接从同一帧接上
+        if (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) document.documentElement.classList.add('native')
       } catch (e) {}
     </script>
     <style>
-      /* 启动页：和安卓原生启动图同样的布局，原生启动页淡出时无缝衔接；预加载完各页面再淡出 */
-      #boot { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
-        gap: min(5vmin, 22px); background: radial-gradient(90vmin 70vmin at 50% 42%, #2a1c10 0%, #08080c 70%);
-        font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; transition: opacity 0.3s ease; }
-      [data-theme='light'] #boot { background: radial-gradient(90vmin 70vmin at 50% 42%, #f8e3c4 0%, #f4f1ea 70%); }
-      #boot svg { width: min(26vmin, 120px); height: min(29vmin, 134px); }
-      #boot .name { color: #efedf6; font-size: min(7.5vmin, 34px); font-weight: 700; letter-spacing: 0.08em; }
+      /* 启动页：定格画面和安卓原生启动图（scripts/android-assets.mjs）同样的布局，原生启动页淡出时无缝衔接。
+         拨片弹入落位 → 扫弦（六根弦依次颤动、向外扩散声波）→ 预加载完各页面后拨片放大淡出 */
+      #boot { --w: min(24vmin, 112px); position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: min(4.5vmin, 21px); overflow: hidden; background: radial-gradient(90vmin 75vmin at 50% 44%, #2c1d10 0%, #08080c 72%);
+        font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif; transition: opacity 0.45s ease 0.08s; }
+      [data-theme='light'] #boot { background: radial-gradient(90vmin 75vmin at 50% 44%, #f9e2c0 0%, #f4f1ea 72%); }
+      #boot .stage { position: relative; width: var(--w); height: calc(var(--w) * 384 / 326); }
+      #boot .mark { position: relative; display: block; width: 100%; height: 100%; overflow: visible;
+        animation: boot-pick 0.9s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+      #boot .glow { position: absolute; left: 50%; top: 50%; width: calc(var(--w) * 2.6); aspect-ratio: 1; margin: calc(var(--w) * -1.3) 0 0 calc(var(--w) * -1.3);
+        border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 138, 61, 0.3), rgba(255, 138, 61, 0)); animation: boot-breathe 3.2s ease-in-out infinite alternate; }
+      #boot .ring { position: absolute; left: 50%; top: 52%; width: calc(var(--w) * 1.3); aspect-ratio: 1; margin: calc(var(--w) * -0.65) 0 0 calc(var(--w) * -0.65);
+        border-radius: 50%; border: 1.5px solid rgba(255, 150, 80, 0.55); opacity: 0; animation: boot-ring 1.8s cubic-bezier(0.2, 0.6, 0.3, 1) 0.55s infinite; }
+      #boot .ring + .ring { animation-delay: 0.85s; }
+      #boot .mark-string { animation: boot-pluck 1.8s ease-out 0.5s infinite; }
+      #boot .mark-string:nth-child(2) { animation-delay: 0.54s; }
+      #boot .mark-string:nth-child(3) { animation-delay: 0.58s; }
+      #boot .mark-string:nth-child(4) { animation-delay: 0.62s; }
+      #boot .mark-string:nth-child(5) { animation-delay: 0.66s; }
+      #boot .mark-string:nth-child(6) { animation-delay: 0.7s; }
+      #boot .txt { display: flex; flex-direction: column; align-items: center; gap: min(1.6vmin, 8px); }
+      #boot .name { color: #efedf6; font-size: min(7.5vmin, 34px); font-weight: 700; letter-spacing: 0.12em; padding-left: 0.12em;
+        animation: boot-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both; }
       [data-theme='light'] #boot .name { color: #1d1b24; }
-      #boot .sub { color: #6e6b80; font-size: min(3vmin, 14px); letter-spacing: 0.2em; }
-      #boot .bar { position: absolute; left: 50%; bottom: 22%; width: min(34vmin, 150px); height: 3px; margin-left: calc(min(34vmin, 150px) / -2);
-        border-radius: 3px; background: rgba(128, 128, 140, 0.18); overflow: hidden; }
-      #boot .bar i { display: block; height: 100%; width: 6%; border-radius: 3px; background: linear-gradient(90deg, #f5b041, #ff7849); transition: width 0.25s ease; }
+      #boot .sub { color: #7a7790; font-size: min(3vmin, 14px); letter-spacing: 0.32em; padding-left: 0.32em;
+        animation: boot-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.38s both; }
+      [data-theme='light'] #boot .sub { color: #8f897e; }
+      #boot .bar { position: absolute; left: 50%; bottom: calc(18% + var(--sab, 0px)); width: min(30vmin, 132px); height: 3px; margin-left: calc(min(30vmin, 132px) / -2);
+        border-radius: 3px; background: rgba(128, 128, 140, 0.16); overflow: hidden; animation: boot-fade 0.5s ease 0.6s both; }
+      #boot .bar i { position: relative; display: block; height: 100%; width: 6%; border-radius: 3px; background: linear-gradient(90deg, #f5b041, #ff7849);
+        transition: width 0.3s cubic-bezier(0.22, 1, 0.36, 1); overflow: hidden; }
+      #boot .bar i::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+        transform: translateX(-100%); animation: boot-shine 1.2s ease-in-out infinite; }
+      html.native #boot :is(.mark, .name, .sub) { animation: none; }
       #boot.done { opacity: 0; pointer-events: none; }
+      #boot.done .mark { animation: boot-out 0.5s cubic-bezier(0.5, 0, 0.75, 0) both; }
+      #boot.done :is(.txt, .bar) { opacity: 0; transform: translateY(6px); transition: opacity 0.25s ease, transform 0.25s ease; }
+      @keyframes boot-pick {
+        0% { opacity: 0; transform: translateY(26%) rotate(-28deg) scale(0.55); }
+        45% { opacity: 1; }
+        100% { opacity: 1; transform: none; }
+      }
+      @keyframes boot-pluck {
+        0% { transform: translateX(0); stroke-opacity: 0.16; }
+        8% { transform: translateX(5px); stroke-opacity: 0.7; }
+        16% { transform: translateX(-4px); }
+        24% { transform: translateX(3px); stroke-opacity: 0.45; }
+        32% { transform: translateX(-2px); }
+        40% { transform: translateX(1px); }
+        50%, 100% { transform: translateX(0); stroke-opacity: 0.16; }
+      }
+      @keyframes boot-ring {
+        0% { opacity: 0; transform: scale(0.75); }
+        12% { opacity: 0.7; }
+        100% { opacity: 0; transform: scale(1.85); }
+      }
+      @keyframes boot-breathe {
+        from { opacity: 0.65; transform: scale(0.92); }
+        to { opacity: 1; transform: scale(1.06); }
+      }
+      @keyframes boot-rise {
+        from { opacity: 0; transform: translateY(10px); letter-spacing: 0.5em; }
+      }
+      @keyframes boot-fade {
+        from { opacity: 0; }
+      }
+      @keyframes boot-shine {
+        to { transform: translateX(100%); }
+      }
+      @keyframes boot-out {
+        to { opacity: 0; transform: scale(1.18); filter: blur(4px); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot *, #boot *::after { animation: none !important; }
+      }
     </style>
   </head>
   <body>
     <div id="boot" aria-hidden="true">
-      <svg viewBox="80 70 352 390">
-        <defs>
-          <linearGradient id="boot-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5b041"/><stop offset="1" stop-color="#ff7849"/></linearGradient>
-          <clipPath id="boot-c"><path d="M256 448C200 392 96 286 96 190c0-66 72-110 160-110s160 44 160 110c0 96-104 202-160 258Z"/></clipPath>
-        </defs>
-        <path d="M256 448C200 392 96 286 96 190c0-66 72-110 160-110s160 44 160 110c0 96-104 202-160 258Z" fill="url(#boot-g)"/>
-        <g clip-path="url(#boot-c)" stroke="#fff" stroke-opacity=".55" stroke-linecap="round"><line x1="176" y1="60" x2="176" y2="470" stroke-width="7.0"/><line x1="208" y1="60" x2="208" y2="470" stroke-width="6.1"/><line x1="240" y1="60" x2="240" y2="470" stroke-width="5.2"/><line x1="272" y1="60" x2="272" y2="470" stroke-width="4.3"/><line x1="304" y1="60" x2="304" y2="470" stroke-width="3.4"/><line x1="336" y1="60" x2="336" y2="470" stroke-width="2.5"/></g>
-        <circle cx="256" cy="200" r="46" fill="none" stroke="#fff" stroke-width="16"/>
-      </svg>
-      <div class="name">没谱了</div>
-      <div class="sub">本地吉他谱</div>
+      <div class="stage">
+        <span class="glow"></span>
+        <span class="ring"></span>
+        <span class="ring"></span>
+        <!--brand-mark: 构建时由 vite.config.ts 换成 src/lib/brand.ts 里的拨片图形-->
+      </div>
+      <div class="txt">
+        <div class="name">没谱了</div>
+        <div class="sub">本地吉他谱</div>
+      </div>
       <div class="bar"><i></i></div>
     </div>
     <div id="root"></div>

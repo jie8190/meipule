@@ -71,7 +71,7 @@ function SectionCard({ doc, sec, si, set, score, sel, setSel, patternIds }: { do
           <>
             <Select
               value={sec.pattern ?? ''}
-              className="order-last h-10 w-full min-w-0 text-[13px] sm:order-none sm:w-auto sm:flex-1"
+              className="order-last w-full min-w-0 sm:order-none sm:w-auto sm:flex-1"
               onChange={(v) => upd((s) => clean({ ...s, pattern: v || undefined }))}
               options={[{ value: '', label: doc.pattern ? `沿用全曲（${doc.pattern}）` : '不使用节奏型' }, ...patternIds.map((p) => ({ value: p, label: `节奏型：${p}` }))]}
             />

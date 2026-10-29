@@ -227,7 +227,10 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
       <input
         ref={ref}
         className={cn(
-          'h-10 w-full rounded-xl border border-line bg-[color-mix(in_oklab,var(--fg)_3%,transparent)] px-3 text-sm text-fg outline-none transition placeholder:text-fg-3 focus:border-[color-mix(in_oklab,var(--accent)_60%,transparent)] focus:bg-[color-mix(in_oklab,var(--fg)_5%,transparent)] focus:ring-4 focus:ring-accent-soft',
+          'w-full rounded-xl border border-line bg-[color-mix(in_oklab,var(--fg)_3%,transparent)] px-3 text-fg outline-none transition placeholder:text-fg-3 focus:border-[color-mix(in_oklab,var(--accent)_60%,transparent)] focus:bg-[color-mix(in_oklab,var(--fg)_5%,transparent)] focus:ring-4 focus:ring-accent-soft',
+          // 调用方指定了高度/字号时不再叠加默认值（同类工具类同时出现时谁生效取决于 CSS 顺序，不一定是后写的）
+          !/(^|\s)h-/.test(inputClassName ?? '') && 'h-10',
+          !/(^|\s)text-(xs|sm|base|\[\d)/.test(inputClassName ?? '') && 'text-sm',
           icon ? 'pl-9' : '',
           inputClassName,
         )}
@@ -275,11 +278,13 @@ export function Select<T extends string | number>({
   value,
   onChange,
   options,
+  size = 'md',
   className,
 }: {
   value: T
   onChange: (v: T) => void
   options: { value: T; label: string }[]
+  size?: 'sm' | 'md'
   className?: string
 }) {
   return (
@@ -290,7 +295,8 @@ export function Select<T extends string | number>({
         if (o) onChange(o.value)
       }}
       className={cn(
-        'h-10 cursor-pointer appearance-none rounded-xl border border-line bg-[color-mix(in_oklab,var(--fg)_3%,transparent)] bg-[length:12px] bg-[right_12px_center] bg-no-repeat px-3 pr-8 text-sm text-fg outline-none focus:ring-4 focus:ring-accent-soft',
+        'cursor-pointer appearance-none rounded-xl border border-line bg-[color-mix(in_oklab,var(--fg)_3%,transparent)] bg-[length:12px] bg-[right_12px_center] bg-no-repeat px-3 pr-8 text-fg outline-none transition hover:border-line-2 focus:ring-4 focus:ring-accent-soft',
+        size === 'sm' ? 'h-9 text-[13px]' : 'h-10 text-sm',
         className,
       )}
       style={{

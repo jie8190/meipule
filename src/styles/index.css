@@ -213,61 +213,64 @@ html.native :is(input, textarea, pre, code, .cm-editor, [contenteditable]) {
 }
 
 /* ============ 基础 ============ */
-html,
-body,
-#root {
-  height: 100%;
-}
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-sans);
-  font-feature-settings: 'cv11', 'ss01', 'ss03';
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  overscroll-behavior: none;
-  -webkit-tap-highlight-color: transparent;
-}
-::selection {
-  background: var(--accent-soft);
-  color: var(--fg);
-}
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-3) transparent;
-}
-*::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
-*::-webkit-scrollbar-thumb {
-  background: var(--line-2);
-  border-radius: 10px;
-  border: 3px solid transparent;
-  background-clip: padding-box;
-}
-*::-webkit-scrollbar-thumb:hover {
-  background: var(--line-3);
-  background-clip: padding-box;
-}
-button {
-  cursor: pointer;
-}
-button:disabled {
-  cursor: not-allowed;
-}
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 8px;
-}
-input,
-textarea,
-select {
-  font: inherit;
-  color: inherit;
+/* 放在 base 层里，Tailwind 工具类（text-sm、rounded-full 等）才能覆盖它们 */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-3) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--line-2);
+    border-radius: 10px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--line-3);
+    background-clip: padding-box;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  input,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
 }
 
 /* 背景氛围：柔光 + 颗粒 */
@@ -297,61 +300,63 @@ select {
 }
 
 /* ============ 组件类 ============ */
-.glass {
-  background: var(--glass);
-  backdrop-filter: blur(22px) saturate(1.5);
-  -webkit-backdrop-filter: blur(22px) saturate(1.5);
-}
-.card {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 20px;
-  box-shadow: var(--shadow);
-}
-.hairline {
-  border: 1px solid var(--line);
-}
-.text-gradient {
-  background: linear-gradient(100deg, var(--accent) 0%, var(--accent-2) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.text-gradient-ai {
-  background: linear-gradient(100deg, var(--ai-1), var(--ai-2) 55%, var(--accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.bg-accent-gradient {
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-}
-.bg-ai-gradient {
-  background: linear-gradient(135deg, var(--ai-1) 0%, var(--ai-2) 60%, var(--accent) 120%);
-}
-.ring-glow {
-  box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent),
-    0 10px 40px -10px var(--accent-glow);
-}
-.kbd {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 6px;
-  border: 1px solid var(--line-2);
-  border-bottom-width: 2px;
-  color: var(--fg-2);
-  background: var(--surface-2);
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  scrollbar-width: none;
-}
-.mask-fade-x {
-  mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+@layer components {
+  .glass {
+    background: var(--glass);
+    backdrop-filter: blur(22px) saturate(1.5);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+  }
+  .hairline {
+    border: 1px solid var(--line);
+  }
+  .text-gradient {
+    background: linear-gradient(100deg, var(--accent) 0%, var(--accent-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-ai {
+    background: linear-gradient(100deg, var(--ai-1), var(--ai-2) 55%, var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-accent-gradient {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  }
+  .bg-ai-gradient {
+    background: linear-gradient(135deg, var(--ai-1) 0%, var(--ai-2) 60%, var(--accent) 120%);
+  }
+  .ring-glow {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--accent) 40%, transparent),
+      0 10px 40px -10px var(--accent-glow);
+  }
+  .kbd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 6px;
+    border: 1px solid var(--line-2);
+    border-bottom-width: 2px;
+    color: var(--fg-2);
+    background: var(--surface-2);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .mask-fade-x {
+    mask-image: linear-gradient(90deg, transparent, #000 24px, #000 calc(100% - 24px), transparent);
+  }
 }
 
 /* 谱面 */
@@ -390,6 +395,16 @@ select {
 }
 
 /* 动画 */
+/* 启动页淡出时主界面从略小处放大进场（见 lib/boot.ts） */
+@keyframes boot-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+.boot-reveal #root {
+  animation: boot-reveal 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
 @keyframes shimmer {
   0% {
     background-position: -200% 0;

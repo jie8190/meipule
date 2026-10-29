@@ -115,7 +115,7 @@ export default function Tuner() {
               { value: 'chromatic', label: '半音阶' },
             ]}
           />
-          <Select value={tuningId} onChange={setTuningId} className="h-9 text-[13px]" options={TUNINGS.map((t) => ({ value: t.id, label: t.name }))} />
+          <Select value={tuningId} onChange={setTuningId} size="sm" options={TUNINGS.map((t) => ({ value: t.id, label: t.name }))} />
         </div>
       </div>
 

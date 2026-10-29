@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { AnimatePresence, motion } from 'motion/react'
@@ -24,6 +24,7 @@ import {
   CircleAlert,
 } from 'lucide-react'
 import { db } from '@/lib/db'
+import { MARK_VIEWBOX, markSvg } from '@/lib/brand'
 import { useUi } from '@/store/ui'
 import { useKeepAwake, useKeyboardOpen } from '@/lib/native'
 import { useAiJob } from '@/store/aiJob'
@@ -31,25 +32,18 @@ import { resolvedTheme, useSettings } from '@/store/settings'
 import { cn, Kbd } from './ui'
 
 export function Logo({ className, size = 34 }: { className?: string; size?: number }) {
+  // 渐变跟随当前主题色；id 去掉 useId 里的特殊字符，才能用在 url(#...) 里
+  const id = 'logo' + useId().replace(/[^a-zA-Z0-9]/g, '')
+  const html = useMemo(() => markSvg(id, ['var(--accent)', 'var(--accent-2)']), [id])
   return (
-    <svg viewBox="0 0 64 64" width={size} height={size} className={className} aria-hidden>
-      <defs>
-        <linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="var(--accent)" />
-          <stop offset="1" stopColor="var(--accent-2)" />
-        </linearGradient>
-        <clipPath id="logo-c">
-          <path d="M32 60C24 52 6 34 6 20 6 10.5 17 4 32 4s26 6.5 26 16c0 14-18 32-26 40Z" />
-        </clipPath>
-      </defs>
-      <path d="M32 60C24 52 6 34 6 20 6 10.5 17 4 32 4s26 6.5 26 16c0 14-18 32-26 40Z" fill="url(#logo-g)" />
-      <g clipPath="url(#logo-c)" stroke="#fff" strokeOpacity="0.55" strokeLinecap="round">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
-          <line key={i} x1={17 + i * 6} y1={-2} x2={17 + i * 6} y2={66} strokeWidth={0.8 + (5 - i) * 0.22} />
-        ))}
-      </g>
-      <circle cx="32" cy="23" r="7.5" fill="none" stroke="#fff" strokeWidth="2.6" strokeOpacity="0.95" />
-    </svg>
+    <svg
+      viewBox={MARK_VIEWBOX}
+      width={(size * 326) / 384}
+      height={size}
+      className={cn('shrink-0 drop-shadow-[0_6px_14px_var(--accent-glow)]', className)}
+      aria-hidden
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   )
 }
 
@@ -216,10 +210,21 @@ function BottomNav() {
                 key={it.to}
                 to={it.to}
                 end={it.end}
-                className={({ isActive }) => cn('flex w-16 flex-col items-center gap-1 text-[10.5px] font-medium transition-colors', isActive ? 'text-accent' : 'text-fg-3')}
+                className={({ isActive }) =>
+                  cn('flex w-16 flex-col items-center gap-0.5 text-[10.5px] font-medium transition active:scale-90', isActive ? 'text-accent' : 'text-fg-3')
+                }
               >
-                <it.icon className="size-[21px]" strokeWidth={1.9} />
-                {it.label}
+                {({ isActive }) => (
+                  <>
+                    <span className="relative flex h-7 w-12 items-center justify-center">
+                      {isActive && (
+                        <motion.span layoutId="tab-active" className="absolute inset-0 rounded-full bg-accent-soft" transition={{ type: 'spring', stiffness: 520, damping: 38 }} />
+                      )}
+                      <it.icon className="relative size-[21px]" strokeWidth={isActive ? 2.2 : 1.9} />
+                    </span>
+                    {it.label}
+                  </>
+                )}
               </NavLink>
             ) : (
               <button
