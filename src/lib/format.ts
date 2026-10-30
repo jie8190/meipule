@@ -18,10 +18,4 @@ export function greeting(): string {
   return '晚上好'
 }
 
-export function todayLabel(): string {
-  const d = new Date()
-  const wd = '日一二三四五六'[d.getDay()]
-  return `${d.getMonth() + 1}月${d.getDate()}日 · 星期${wd}`
-}
-
 export const DIFFICULTY = ['', '入门', '简单', '中等', '进阶', '挑战']

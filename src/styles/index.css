@@ -6,69 +6,72 @@
 :root,
 [data-theme='dark'] {
   color-scheme: dark;
-  --bg: #08080c;
-  --bg-2: #0d0d13;
-  --surface: #121219;
-  --surface-2: #181821;
-  --surface-3: #20202b;
-  --elev: rgba(24, 24, 33, 0.72);
-  --line: rgba(255, 255, 255, 0.065);
+  --bg: #0a0a0b;
+  --bg-2: #0e0e10;
+  --surface: #141416;
+  --surface-2: #1a1a1d;
+  --surface-3: #232326;
+  --elev: rgba(26, 26, 29, 0.72);
+  --line: rgba(255, 255, 255, 0.07);
   --line-2: rgba(255, 255, 255, 0.11);
-  --line-3: rgba(255, 255, 255, 0.18);
-  --fg: #efedf6;
-  --fg-2: #aaa7ba;
-  --fg-3: #6e6b80;
-  --ok: #46deb0;
-  --warn: #ffc65c;
-  --err: #ff6b7d;
-  --ai-1: #8b7bff;
-  --ai-2: #e879f9;
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.7);
-  --shadow-lg: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 40px 90px -30px rgba(0, 0, 0, 0.85);
-  --glass: rgba(18, 18, 26, 0.66);
-  --grain-opacity: 0.045;
+  --line-3: rgba(255, 255, 255, 0.17);
+  --fg: #f3f1ed;
+  --fg-2: #a3a09a;
+  --fg-3: #6c6a66;
+  --ok: #5fd4a4;
+  --warn: #f2c063;
+  --err: #f2707e;
+  --ai-1: #9a8cff;
+  --ai-2: #d68af0;
+  /* 顶部 1px 内高光 + 柔和的投影：卡片像一块有厚度的面板，而不是发光的色块 */
+  --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.35), 0 32px 80px -24px rgba(0, 0, 0, 0.8);
+  --glass: rgba(20, 20, 22, 0.72);
+  --grain-opacity: 0.035;
 
-  --score-bg: #0f0f16;
-  --score-paper: #0f0f16;
-  --score-line: rgba(208, 205, 228, 0.32);
-  --score-bar: rgba(222, 220, 238, 0.55);
-  --score-ink: #f1effa;
-  --score-dim: #8e8ba2;
+  --score-bg: #121214;
+  --score-paper: #121214;
+  --score-line: rgba(222, 218, 210, 0.28);
+  --score-bar: rgba(228, 224, 216, 0.52);
+  --score-ink: #f3f1ed;
+  --score-dim: #8f8c86;
   --score-chord: var(--accent);
   --score-accent: var(--accent);
-  --score-lyric: #e3e0ef;
-  --score-lyric-2: #a7a3bc;
-  --score-dgrid: rgba(220, 218, 238, 0.45);
-  --score-dot: #f1effa;
-  --score-dot-ink: #0f0f16;
+  --score-lyric: #e6e3dd;
+  --score-lyric-2: #a6a29b;
+  --score-dgrid: rgba(228, 224, 216, 0.45);
+  --score-dot: #f3f1ed;
+  --score-dot-ink: #121214;
   --score-error: var(--err);
   --score-label-bg: rgba(255, 255, 255, 0.07);
-  --score-label-ink: #e9e7f4;
+  --score-label-ink: #ebe8e2;
 }
 
 [data-theme='light'] {
   color-scheme: light;
-  --bg: #f4f1ea;
-  --bg-2: #efebe2;
-  --surface: #fbf9f4;
+  --bg: #f3f1ec;
+  --bg-2: #eeebe4;
+  --surface: #fbfaf7;
   --surface-2: #ffffff;
-  --surface-3: #f0ece3;
+  --surface-3: #ebe8e1;
   --elev: rgba(255, 255, 255, 0.78);
   --line: rgba(40, 30, 10, 0.08);
   --line-2: rgba(40, 30, 10, 0.13);
   --line-3: rgba(40, 30, 10, 0.22);
-  --fg: #1d1a16;
-  --fg-2: #625d55;
-  --fg-3: #9a948a;
+  --fg: #1a1916;
+  --fg-2: #5f5b54;
+  --fg-3: #99948b;
   --ok: #0f9f74;
   --warn: #c98a00;
   --err: #d6334d;
   --ai-1: #6d5bf0;
   --ai-2: #c43fd6;
-  --shadow: 0 1px 2px rgba(60, 40, 10, 0.05), 0 18px 40px -22px rgba(60, 40, 10, 0.28);
-  --shadow-lg: 0 2px 4px rgba(60, 40, 10, 0.05), 0 40px 80px -30px rgba(60, 40, 10, 0.35);
-  --glass: rgba(251, 249, 244, 0.72);
-  --grain-opacity: 0.06;
+  --highlight: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 1px 2px rgba(40, 30, 10, 0.06), 0 12px 32px -18px rgba(40, 30, 10, 0.22);
+  --shadow-lg: 0 2px 6px rgba(40, 30, 10, 0.06), 0 32px 80px -28px rgba(40, 30, 10, 0.32);
+  --glass: rgba(251, 250, 247, 0.76);
+  --grain-opacity: 0.05;
 
   --score-bg: #fffdf8;
   --score-paper: #fffdf8;
@@ -279,15 +282,10 @@ html.native :is(input, textarea, pre, code, .cm-editor, [contenteditable]) {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(900px 600px at 8% -10%, color-mix(in oklab, var(--accent) 13%, transparent), transparent 60%),
-    radial-gradient(800px 600px at 105% 110%, color-mix(in oklab, var(--ai-1) 12%, transparent), transparent 60%),
-    radial-gradient(600px 400px at 60% 40%, color-mix(in oklab, var(--accent-2) 5%, transparent), transparent 70%);
+  background: radial-gradient(1100px 520px at 30% -12%, color-mix(in oklab, var(--accent) 7%, transparent), transparent 70%);
 }
 [data-theme='light'] .app-atmosphere {
-  background:
-    radial-gradient(900px 600px at 8% -10%, color-mix(in oklab, var(--accent) 16%, transparent), transparent 60%),
-    radial-gradient(800px 600px at 105% 110%, color-mix(in oklab, var(--ai-1) 9%, transparent), transparent 60%);
+  background: radial-gradient(1100px 520px at 30% -12%, color-mix(in oklab, var(--accent) 10%, transparent), transparent 70%);
 }
 .app-grain {
   position: fixed;
@@ -309,29 +307,54 @@ html.native :is(input, textarea, pre, code, .cm-editor, [contenteditable]) {
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 20px;
+    border-radius: 18px;
     box-shadow: var(--shadow);
+  }
+  /* 页面眉标：等宽、全大写、拉开字距，像乐器面板上的丝印 */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    font-feature-settings: 'zero', 'tnum';
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
   .hairline {
     border: 1px solid var(--line);
   }
   .text-gradient {
-    background: linear-gradient(100deg, var(--accent) 0%, var(--accent-2) 100%);
+    background: linear-gradient(100deg, var(--accent) 0%, color-mix(in oklab, var(--accent) 70%, var(--accent-2)) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .text-gradient-ai {
-    background: linear-gradient(100deg, var(--ai-1), var(--ai-2) 55%, var(--accent));
+    background: linear-gradient(100deg, var(--ai-1), var(--ai-2));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
+  /* 强调色实色按钮：同色相的轻微明暗 + 顶部内高光，而不是两种颜色的渐变 */
   .bg-accent-gradient {
-    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+      linear-gradient(160deg, var(--accent), color-mix(in oklab, var(--accent) 82%, var(--accent-2)));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   }
   .bg-ai-gradient {
-    background: linear-gradient(135deg, var(--ai-1) 0%, var(--ai-2) 60%, var(--accent) 120%);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+      linear-gradient(160deg, var(--ai-1), color-mix(in oklab, var(--ai-1) 70%, var(--ai-2)));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), inset 0 -1px 0 rgba(0, 0, 0, 0.12);
+  }
+  /* 图标底座：中性的小方块，图标本身单色 */
+  .icon-tile {
+    background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+    box-shadow: var(--highlight), 0 0 0 1px var(--line);
   }
   .ring-glow {
     box-shadow:

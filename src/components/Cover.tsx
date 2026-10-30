@@ -1,21 +1,20 @@
 import { memo, useId } from 'react'
 import { cn } from './ui'
 
+// 胶片感的低饱和配色：[亮色, 暗色, 底色]。同一首歌永远是同一组颜色
 const PALETTES: [string, string, string][] = [
-  ['#ff9a5a', '#ff4e7a', '#1d0b26'],
-  ['#5ee7df', '#7b6cf6', '#0b1630'],
-  ['#f6d365', '#fd7e5a', '#2a1306'],
-  ['#a18cd1', '#fbc2eb', '#160d2c'],
-  ['#84fab0', '#4cc9f0', '#062320'],
-  ['#fccb90', '#d57eeb', '#1f0f29'],
-  ['#c3b1ff', '#7ec8ff', '#0f1430'],
-  ['#f093fb', '#f5576c', '#24081a'],
-  ['#3ee8a0', '#2fd3e0', '#05221a'],
-  ['#fa709a', '#fee140', '#2a0f08'],
-  ['#3fd0d0', '#5b3fd9', '#090c26'],
-  ['#ffb36b', '#ff5e62', '#260909'],
-  ['#ffe29f', '#ffa99f', '#2b1610'],
-  ['#9be15d', '#00b3a4', '#082018'],
+  ['#e0a46c', '#9c4a36', '#1a110d'], // 赤陶
+  ['#9cc0b2', '#3d6460', '#0d1615'], // 鼠尾草
+  ['#c8b6e6', '#61509a', '#130f1e'], // 暮紫
+  ['#e9c88e', '#93702f', '#16120a'], // 黄铜
+  ['#a3bcdb', '#3b4f7c', '#0c111b'], // 板岩蓝
+  ['#e6aba4', '#8a3f54', '#190c11'], // 玫瑰
+  ['#bccb8f', '#556a38', '#10140b'], // 橄榄
+  ['#f0b27a', '#b94e3a', '#1b0e0a'], // 琥珀
+  ['#a6d0d2', '#357a86', '#0a1517'], // 湖青
+  ['#d9c6a8', '#77624b', '#13100d'], // 沙
+  ['#d2a2da', '#5c3d7b', '#140d1a'], // 李子
+  ['#94c6a6', '#2d6957', '#0a1511'], // 松
 ]
 
 export function hashStr(s: string): number {
@@ -119,8 +118,8 @@ export const Cover = memo(function Cover({ title, artist = '', className, showTe
       </svg>
       {showText && (
         <span
-          className="pointer-events-none absolute bottom-[6%] left-[8%] select-none font-display leading-none text-white/90 drop-shadow-[0_2px_10px_rgba(0,0,0,0.35)]"
-          style={{ fontSize: 'min(44cqw, 120px)', fontWeight: 600 }}
+          className="pointer-events-none absolute bottom-[7%] left-[9%] select-none font-display leading-none text-white/80 drop-shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
+          style={{ fontSize: 'min(40cqw, 110px)', fontWeight: 500 }}
         >
           {glyph}
         </span>

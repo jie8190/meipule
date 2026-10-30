@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Minus, Plus, Play, Square, Hand } from 'lucide-react'
 import { audio } from '@/lib/audio/engine'
 import { isTouch } from '@/lib/native'
-import { Slider, cn, Segmented } from '@/components/ui'
+import { Slider, cn, PageHeader, Segmented } from '@/components/ui'
 
 const MARKINGS: [number, string, string][] = [
   [40, 'Grave', '庄板'],
@@ -114,8 +114,11 @@ export default function Metronome() {
   const mk = marking(bpm)
   return (
     <div className="mx-auto max-w-3xl px-5 pb-20 pt-6 sm:px-8 lg:pt-10">
-      <h1 className="text-[32px] font-bold tracking-tight">节拍器</h1>
-      <p className="mt-1 text-sm text-fg-2">{isTouch ? '点节拍圆点切换强拍 / 弱拍 / 静音' : '空格 开始/停止 · ↑↓ 调速度 · 点击节拍圆点切换强弱'}</p>
+      <PageHeader
+        eyebrow="Metronome · BPM"
+        title="节拍器"
+        description={isTouch ? '点节拍圆点切换强拍 / 弱拍 / 静音' : '空格 开始/停止 · ↑↓ 调速度 · 点击节拍圆点切换强弱'}
+      />
 
       <div className="card relative mt-8 overflow-hidden px-6 pb-8 pt-10">
         <div className="pointer-events-none absolute -top-40 left-1/2 size-[28rem] -translate-x-1/2 bg-[radial-gradient(closest-side,var(--accent),transparent)] opacity-[0.14]" />
@@ -190,7 +193,7 @@ export default function Metronome() {
           </button>
           <button
             onClick={() => setRunning(!running)}
-            className="flex h-14 w-36 items-center justify-center gap-2 rounded-2xl bg-accent-gradient text-[15px] font-semibold text-accent-fg shadow-[0_10px_30px_-8px_var(--accent-glow)] transition active:scale-95"
+            className="flex h-14 w-36 items-center justify-center gap-2 rounded-2xl bg-accent-gradient text-[15px] font-semibold text-accent-fg shadow-[0_6px_18px_-8px_var(--accent-glow)] transition active:scale-95"
           >
             {running ? <Square className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
             {running ? '停止' : '开始'}

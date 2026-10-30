@@ -5,7 +5,7 @@ import { motion } from 'motion/react'
 import { Plus, ListMusic } from 'lucide-react'
 import { createSetlist, db } from '@/lib/db'
 import { Cover } from '@/components/Cover'
-import { Button, Input, Modal } from '@/components/ui'
+import { Button, Dim, Input, Modal, PageHeader } from '@/components/ui'
 
 export default function Setlists() {
   const navigate = useNavigate()
@@ -25,20 +25,25 @@ export default function Setlists() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-5 pb-20 pt-6 sm:px-8 lg:pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[32px] font-bold tracking-tight">歌单</h1>
-          <p className="mt-1 text-sm text-fg-2">把要演出、要练习的歌排成一组，演奏时一键切换下一首</p>
-        </div>
-        <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setOpen(true)}>
-          新建歌单
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow={<>Setlists · <span className="tnum">{String(lists?.length ?? 0).padStart(2, '0')}</span></>}
+        title={
+          <>
+            歌单<Dim>，一组一组地练</Dim>
+          </>
+        }
+        description="把要演出、要练习的歌排成一组，演奏时一键切换下一首"
+        actions={
+          <Button variant="primary" icon={<Plus className="size-4" />} onClick={() => setOpen(true)}>
+            新建歌单
+          </Button>
+        }
+      />
 
       {lists && lists.length === 0 && (
-        <div className="mt-10 flex flex-col items-center gap-4 rounded-[28px] border border-dashed border-line-2 py-20 text-center">
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
-            <ListMusic className="size-7" />
+        <div className="mt-10 flex flex-col items-center gap-4 rounded-[20px] border border-dashed border-line-2 py-20 text-center">
+          <span className="icon-tile flex size-14 items-center justify-center rounded-2xl text-accent">
+            <ListMusic className="size-6" strokeWidth={1.7} />
           </span>
           <div>
             <div className="font-semibold">还没有歌单</div>
@@ -63,8 +68,8 @@ export default function Setlists() {
               className="group text-left"
             >
               <div
-                className="relative aspect-square overflow-hidden rounded-[24px] ring-1 ring-line transition duration-500 group-hover:-translate-y-1"
-                style={{ background: `linear-gradient(135deg, hsl(${l.hue ?? 30} 70% 55%), hsl(${((l.hue ?? 30) + 60) % 360} 70% 35%))` }}
+                className="relative aspect-square overflow-hidden rounded-[16px] ring-1 ring-inset ring-white/8 shadow-[0_14px_30px_-20px_rgba(0,0,0,0.7)] transition duration-500 group-hover:-translate-y-1"
+                style={{ background: `linear-gradient(150deg, hsl(${l.hue ?? 30} 32% 46%), hsl(${((l.hue ?? 30) + 40) % 360} 30% 16%))` }}
               >
                 {covers.length >= 4 ? (
                   <div className="grid size-full grid-cols-2">
@@ -81,8 +86,8 @@ export default function Setlists() {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <div className="absolute inset-x-4 bottom-4 text-white">
-                  <div className="truncate text-lg font-bold">{l.name}</div>
-                  <div className="text-xs text-white/70">{l.songIds.length} 首</div>
+                  <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-white/60">{String(l.songIds.length).padStart(2, '0')} songs</div>
+                  <div className="mt-1 truncate text-[17px] font-semibold tracking-tight">{l.name}</div>
                 </div>
               </div>
             </motion.button>

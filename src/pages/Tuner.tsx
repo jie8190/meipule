@@ -4,7 +4,7 @@ import { Mic, MicOff, Volume2 } from 'lucide-react'
 import { PitchDetector } from '@/lib/audio/tuner'
 import { audio } from '@/lib/audio/engine'
 import { TUNINGS, freqToMidi, midiToNoteName, pcToName } from '@/lib/music/theory'
-import { Button, cn, Select, Segmented } from '@/components/ui'
+import { Button, cn, PageHeader, Select, Segmented } from '@/components/ui'
 
 interface Reading {
   midi: number
@@ -97,12 +97,12 @@ export default function Tuner() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-20 pt-6 sm:px-8 lg:pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[32px] font-bold tracking-tight">调音器</h1>
-          <p className="mt-1 text-sm text-fg-2">对着麦克风弹一根空弦，指针居中变绿就准了</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        eyebrow="Tuner · A4 = 440 Hz"
+        title="调音器"
+        description="对着麦克风弹一根空弦，指针居中变绿就准了"
+        actions={
+        <>
           <Segmented
             size="sm"
             value={mode}
@@ -116,8 +116,9 @@ export default function Tuner() {
             ]}
           />
           <Select value={tuningId} onChange={setTuningId} size="sm" options={TUNINGS.map((t) => ({ value: t.id, label: t.name }))} />
-        </div>
-      </div>
+        </>
+        }
+      />
 
       <div className="relative mx-auto mt-8 aspect-[1.3] max-w-[560px]">
         <svg viewBox="0 0 400 300" className="absolute inset-0 size-full overflow-visible">

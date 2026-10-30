@@ -69,7 +69,7 @@ function NavItem({ to, label, icon: Icon, end, count }: { to: string; label: str
       end={end}
       className={({ isActive }) =>
         cn(
-          'group relative flex h-10 items-center gap-3 rounded-xl px-3 text-[13.5px] font-medium transition-colors',
+          'group relative flex h-9 items-center gap-3 rounded-[10px] px-3 text-[13.5px] font-medium transition-colors',
           isActive ? 'text-fg' : 'text-fg-2 hover:bg-[color-mix(in_oklab,var(--fg)_5%,transparent)] hover:text-fg',
         )
       }
@@ -79,13 +79,13 @@ function NavItem({ to, label, icon: Icon, end, count }: { to: string; label: str
           {isActive && (
             <motion.span
               layoutId="nav-active"
-              className="absolute inset-0 rounded-xl bg-[color-mix(in_oklab,var(--fg)_8%,transparent)] ring-1 ring-line"
+              className="absolute inset-0 rounded-[10px] bg-[color-mix(in_oklab,var(--fg)_7%,transparent)] shadow-[var(--highlight)] ring-1 ring-line"
               transition={{ type: 'spring', stiffness: 520, damping: 40 }}
             />
           )}
-          <Icon className={cn('relative size-[18px] transition-colors', isActive ? 'text-accent' : '')} strokeWidth={isActive ? 2.2 : 1.8} />
+          <Icon className={cn('relative size-[17px] transition-colors', isActive ? 'text-accent' : 'text-fg-3 group-hover:text-fg-2')} strokeWidth={isActive ? 2.1 : 1.8} />
           <span className="relative flex-1">{label}</span>
-          {count !== undefined && count > 0 && <span className="relative text-xs tabular-nums text-fg-3">{count}</span>}
+          {count !== undefined && count > 0 && <span className="relative font-mono text-[11px] text-fg-3 tnum">{String(count).padStart(2, '0')}</span>}
         </>
       )}
     </NavLink>
@@ -105,56 +105,50 @@ function Sidebar() {
   const set = useSettings((s) => s.set)
   const dark = resolvedTheme(theme) === 'dark'
   return (
-    <aside className="glass relative z-20 hidden w-[252px] shrink-0 flex-col border-r border-line pt-[var(--sat)] lg:flex">
+    <aside className="glass relative z-20 hidden w-[248px] shrink-0 flex-col border-r border-line pt-[var(--sat)] lg:flex">
       <div className="flex items-center gap-3 px-5 pb-5 pt-6">
-        <Logo />
+        <Logo size={30} />
         <div className="leading-tight">
-          <div className="text-[17px] font-bold tracking-tight">没谱了</div>
-          <div className="text-[11px] text-fg-3">本地吉他谱 · Meipule</div>
+          <div className="text-[16px] font-semibold tracking-tight">没谱了</div>
+          <div className="eyebrow mt-0.5 text-[9.5px]">Meipule · Guitar</div>
         </div>
       </div>
 
       <div className="px-3">
         <button
           onClick={() => setPalette(true)}
-          className="flex h-9 w-full items-center gap-2 rounded-xl border border-line bg-[color-mix(in_oklab,var(--fg)_3%,transparent)] px-3 text-[13px] text-fg-3 transition hover:border-line-2 hover:text-fg-2"
+          className="flex h-9 w-full items-center gap-2 rounded-[10px] border border-line bg-[color-mix(in_oklab,var(--fg)_3%,transparent)] px-3 text-[13px] text-fg-3 shadow-[var(--highlight)] transition hover:border-line-2 hover:text-fg-2"
         >
           <Search className="size-4" />
           <span className="flex-1 text-left">搜索曲谱、和弦…</span>
           <Kbd>Ctrl K</Kbd>
         </button>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            onClick={() => navigate('/edit/new')}
+            className="flex h-9 items-center justify-center gap-2 rounded-[10px] border border-line bg-surface text-[13px] font-medium text-fg-2 shadow-[var(--highlight)] transition hover:border-line-2 hover:text-fg"
+          >
+            <PenLine className="size-4 text-accent" /> 制谱
+          </button>
+          <button
+            onClick={() => navigate('/ai')}
+            className="flex h-9 items-center justify-center gap-2 rounded-[10px] border border-line bg-surface text-[13px] font-medium text-fg-2 shadow-[var(--highlight)] transition hover:border-line-2 hover:text-fg"
+          >
+            <WandSparkles className="size-4 text-ai-1" /> AI 扒谱
+          </button>
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 px-3">
-        <button
-          onClick={() => navigate('/edit/new')}
-          className="group flex flex-col items-start gap-2 rounded-2xl border border-line bg-surface p-3 text-left transition hover:-translate-y-0.5 hover:border-line-2"
-        >
-          <span className="flex size-8 items-center justify-center rounded-xl bg-accent-gradient text-accent-fg">
-            <PenLine className="size-4" />
-          </span>
-          <span className="text-[13px] font-semibold">制谱</span>
-        </button>
-        <button
-          onClick={() => navigate('/ai')}
-          className="ai-border group flex flex-col items-start gap-2 rounded-2xl bg-surface p-3 text-left transition hover:-translate-y-0.5"
-        >
-          <span className="flex size-8 items-center justify-center rounded-xl bg-ai-gradient text-white">
-            <WandSparkles className="size-4" />
-          </span>
-          <span className="text-[13px] font-semibold">AI 扒谱</span>
-        </button>
-      </div>
-
-      <nav className="mt-5 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
+      <nav className="mt-6 flex flex-1 flex-col gap-0.5 overflow-y-auto px-3">
+        <div className="eyebrow mb-1.5 px-3">资料库</div>
         {NAV.map((n) => (
           <NavItem key={n.to} {...n} count={n.to === '/' ? counts?.songs : n.to === '/favorites' ? counts?.fav : counts?.lists} />
         ))}
-        <div className="mb-1 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-3">工具</div>
+        <div className="eyebrow mb-1.5 mt-6 px-3">工具</div>
         {TOOLS.map((n) => (
           <NavItem key={n.to} {...n} />
         ))}
-        <div className="mb-1 mt-5 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-fg-3">更多</div>
+        <div className="eyebrow mb-1.5 mt-6 px-3">更多</div>
         {MORE.map((n) => (
           <NavItem key={n.to} {...n} />
         ))}
@@ -202,8 +196,10 @@ function BottomNav() {
   return (
     <>
       {/* 键盘弹出时收起底栏，不然它会被顶到键盘上方挡住输入区 */}
-      <nav className={cn('glass fixed inset-x-0 bottom-0 z-40 border-t border-line pb-[var(--sab)] lg:hidden', keyboard && 'hidden')}>
-        <div className="mx-auto flex h-16 max-w-md items-center justify-around px-2">
+      <div className={cn('pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:hidden', keyboard && 'hidden')}>
+        {/* 底部渐隐，内容滚到胶囊后面时不显得生硬 */}
+        <div className="absolute inset-x-0 bottom-0 h-[calc(96px+var(--sab))] bg-gradient-to-t from-bg via-[color-mix(in_oklab,var(--bg)_70%,transparent)] to-transparent" />
+        <nav className="glass pointer-events-auto relative mx-auto mb-[calc(10px+var(--sab))] flex h-[62px] w-[calc(100%-28px)] max-w-[420px] items-center justify-around rounded-[22px] border border-line-2 px-1 shadow-[var(--shadow-lg)]">
           {items.map((it, i) =>
             it ? (
               <NavLink
@@ -211,16 +207,20 @@ function BottomNav() {
                 to={it.to}
                 end={it.end}
                 className={({ isActive }) =>
-                  cn('flex w-16 flex-col items-center gap-0.5 text-[10.5px] font-medium transition active:scale-90', isActive ? 'text-accent' : 'text-fg-3')
+                  cn('flex w-16 flex-col items-center gap-0.5 text-[10px] font-medium transition active:scale-90', isActive ? 'text-fg' : 'text-fg-3')
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <span className="relative flex h-7 w-12 items-center justify-center">
+                    <span className="relative flex h-7 w-11 items-center justify-center">
                       {isActive && (
-                        <motion.span layoutId="tab-active" className="absolute inset-0 rounded-full bg-accent-soft" transition={{ type: 'spring', stiffness: 520, damping: 38 }} />
+                        <motion.span
+                          layoutId="tab-active"
+                          className="absolute inset-0 rounded-full bg-[color-mix(in_oklab,var(--fg)_9%,transparent)]"
+                          transition={{ type: 'spring', stiffness: 520, damping: 38 }}
+                        />
                       )}
-                      <it.icon className="relative size-[21px]" strokeWidth={isActive ? 2.2 : 1.9} />
+                      <it.icon className={cn('relative size-5', isActive && 'text-accent')} strokeWidth={isActive ? 2.1 : 1.8} />
                     </span>
                     {it.label}
                   </>
@@ -231,14 +231,14 @@ function BottomNav() {
                 key={i}
                 aria-label="新建"
                 onClick={() => setSheet(true)}
-                className="-mt-6 flex size-14 items-center justify-center rounded-[20px] bg-accent-gradient text-accent-fg shadow-[0_10px_30px_-8px_var(--accent-glow)] transition active:scale-90"
+                className="flex size-11 items-center justify-center rounded-2xl bg-accent-gradient text-accent-fg transition active:scale-90"
               >
-                <Plus className="size-6" strokeWidth={2.5} />
+                <Plus className="size-[22px]" strokeWidth={2.4} />
               </button>
             ),
           )}
-        </div>
-      </nav>
+        </nav>
+      </div>
       <AnimatePresence>
         {sheet && (
           <div role="dialog" className="fixed inset-0 z-[70] flex items-end lg:hidden">
@@ -250,11 +250,12 @@ function BottomNav() {
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 420, damping: 40 }}
             >
-              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-3" />
+              <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line-3" />
+              <div className="eyebrow mb-1 px-3">新建曲谱</div>
               {[
-                { icon: WandSparkles, title: 'AI 扒谱', desc: '拍照/截图，让 AI 转成曲谱 JSON', cls: 'bg-ai-gradient text-white', go: () => navigate('/ai') },
-                { icon: FileUp, title: '导入曲谱', desc: 'Guitar Pro 文件、复制的文字谱、JSON', cls: 'bg-surface-3 text-fg', go: () => openImport() },
-                { icon: PenLine, title: '从零制谱', desc: '和弦 + 节奏型，参数化生成六线谱', cls: 'bg-accent-gradient text-accent-fg', go: () => navigate('/edit/new') },
+                { icon: WandSparkles, title: 'AI 扒谱', desc: '拍照/截图，让 AI 转成曲谱 JSON', cls: 'icon-tile text-ai-1', go: () => navigate('/ai') },
+                { icon: FileUp, title: '导入曲谱', desc: 'Guitar Pro 文件、复制的文字谱、JSON', cls: 'icon-tile text-fg', go: () => openImport() },
+                { icon: PenLine, title: '从零制谱', desc: '和弦 + 节奏型，参数化生成六线谱', cls: 'icon-tile text-accent', go: () => navigate('/edit/new') },
               ].map((a) => (
                 <button
                   key={a.title}

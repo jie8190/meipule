@@ -7,7 +7,7 @@ import { db, exportBackup, seedSamples } from '@/lib/db'
 import { downloadText } from '@/lib/importer'
 import { isNative } from '@/lib/native'
 import { AiSettingsModal } from '@/components/AiSettingsModal'
-import { Button, cn, confirmDialog, Segmented, Slider, Switch, toast } from '@/components/ui'
+import { Button, cn, confirmDialog, PageHeader, Segmented, Slider, Switch, toast } from '@/components/ui'
 
 const ACCENTS: { id: Accent; name: string; a: string; b: string }[] = [
   { id: 'amber', name: '琥珀', a: '#f5b041', b: '#ff7849' },
@@ -39,7 +39,7 @@ const standalone = typeof window !== 'undefined' && window.matchMedia('(display-
 function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="mb-2 px-1 text-xs font-semibold uppercase tracking-[0.12em] text-fg-3">{title}</h2>
+      <h2 className="eyebrow mb-2.5 px-1">{title}</h2>
       <div className="card divide-y divide-line px-5">{children}</div>
     </section>
   )
@@ -67,7 +67,7 @@ export default function Settings() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 pb-24 pt-6 sm:px-8 lg:pt-10">
-      <h1 className="text-[32px] font-bold tracking-tight">设置</h1>
+      <PageHeader eyebrow={<>Settings · v{__APP_VERSION__}</>} title="设置" />
 
       <Group title="外观">
         <Row title="主题">

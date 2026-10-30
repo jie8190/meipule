@@ -138,7 +138,7 @@ export function PlayerDock(p: DockProps) {
             <button
               aria-label={p.autoScroll ? '停止滚动' : '自动滚动'}
               onClick={p.onAutoScroll}
-              className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-accent-fg shadow-[0_8px_24px_-6px_var(--accent-glow)] transition active:scale-90"
+              className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-accent-fg shadow-[0_6px_16px_-6px_var(--accent-glow)] transition active:scale-90"
             >
               {p.autoScroll && <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-20" style={{ animationDuration: '2s' }} />}
               {p.autoScroll ? <Pause className="size-5 fill-current" /> : <ChevronsDown className="size-5" />}
@@ -167,7 +167,7 @@ export function PlayerDock(p: DockProps) {
           disabled={!p.hasTimeline}
           onClick={() => player.toggle()}
           className={cn(
-            'relative flex size-12 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-accent-fg shadow-[0_8px_24px_-6px_var(--accent-glow)] transition active:scale-90 disabled:opacity-40',
+            'relative flex size-12 shrink-0 items-center justify-center rounded-full bg-accent-gradient text-accent-fg shadow-[0_6px_16px_-6px_var(--accent-glow)] transition active:scale-90 disabled:opacity-40',
           )}
         >
           {playing && <span className="absolute inset-0 animate-ping rounded-full bg-accent opacity-20" style={{ animationDuration: '2s' }} />}

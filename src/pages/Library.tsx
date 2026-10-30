@@ -2,16 +2,22 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { motion } from 'motion/react'
-import { Search, LayoutGrid, Rows3, WandSparkles, FileUp, PenLine, ArrowRight, Heart, Play, Sparkles } from 'lucide-react'
+import { Search, LayoutGrid, Rows3, WandSparkles, FileUp, PenLine, ArrowUpRight, Heart, Play, Sparkles } from 'lucide-react'
 import { db, seedSamples, type SongRecord } from '@/lib/db'
 import { useUi } from '@/store/ui'
-import { greeting, timeAgo, todayLabel } from '@/lib/format'
+import { greeting, timeAgo } from '@/lib/format'
 import { Cover } from '@/components/Cover'
 import { Logo } from '@/components/Shell'
 import { SongCard, SongRow } from '@/components/SongCard'
-import { Button, Chip, cn, Input, Segmented, Select, toast } from '@/components/ui'
+import { Button, Chip, cn, Dim, Input, PageHeader, SectionTitle, Segmented, Select, toast } from '@/components/ui'
 
 type Sort = 'updated' | 'opened' | 'title' | 'difficulty'
+
+const QUICK = [
+  { icon: WandSparkles, title: 'AI 扒谱', tag: 'Vision', desc: '截图或拍照，让 AI 转成可播放的曲谱', tone: 'text-ai-1', to: '/ai' },
+  { icon: FileUp, title: '导入曲谱', tag: 'GP · TXT', desc: 'Guitar Pro、文字谱或 JSON，本地转换', tone: 'text-fg', to: '' },
+  { icon: PenLine, title: '参数化制谱', tag: 'Compose', desc: '写下和弦进行 + 节奏型，自动生成六线谱', tone: 'text-accent', to: '/edit/new' },
+]
 
 export default function Library({ favorites = false }: { favorites?: boolean }) {
   const navigate = useNavigate()
@@ -61,76 +67,64 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
   return (
     <div className="mx-auto max-w-[1400px] px-5 pb-16 pt-6 sm:px-8 lg:pt-10">
       {/* 头部 */}
-      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-[13px] font-medium text-fg-3">
-            <Logo size={20} className="lg:hidden" />
-            {todayLabel()}
-          </div>
-          <h1 className="mt-1.5 text-[34px] font-bold leading-[1.1] tracking-tight sm:text-[42px]">
-            {favorites ? (
-              <>
-                我的<span className="text-gradient">收藏</span>
-              </>
-            ) : (
-              <>
-                {greeting()}，<span className="text-gradient">来弹一首吧</span>
-              </>
-            )}
-          </h1>
-          <p className="mt-2 text-sm text-fg-2">
-            {favorites ? `${list.length} 首收藏的曲谱` : `本地曲库共 ${songs.length} 首 · 所有数据只保存在这台设备上`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Input icon={<Search className="size-4" />} placeholder="搜索曲名、歌手、标签" value={q} onChange={(e) => setQ(e.target.value)} className="w-full sm:w-72" />
-          <Button variant="secondary" icon={<FileUp className="size-4" />} onClick={() => openImport()} className="hidden sm:inline-flex">
-            导入
-          </Button>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow={
+          <>
+            <Logo size={15} className="lg:hidden" />
+            {favorites ? 'Favorites' : 'Library'} · <span className="tnum">{String(favorites ? list.length : songs.length).padStart(2, '0')}</span>
+            <span className="text-line-3">/</span>
+            {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </>
+        }
+        title={
+          favorites ? (
+            <>
+              我的收藏<Dim>，常练的歌</Dim>
+            </>
+          ) : (
+            <>
+              {greeting()}，<Dim>来弹一首吧</Dim>
+            </>
+          )
+        }
+        description={favorites ? `${list.length} 首收藏的曲谱` : '所有曲谱只保存在这台设备上，离线也能弹'}
+        actions={
+          <>
+            <Input icon={<Search className="size-4" />} placeholder="搜索曲名、歌手、标签" value={q} onChange={(e) => setQ(e.target.value)} className="w-full sm:w-72" />
+            <Button variant="secondary" icon={<FileUp className="size-4" />} onClick={() => openImport()} className="hidden sm:inline-flex">
+              导入
+            </Button>
+          </>
+        }
+      />
 
-      {/* 快速开始 */}
+      {/* 快速开始：中性面板，只用图标颜色区分 */}
       {!favorites && !q && (
-        <section className="mt-6 grid grid-cols-3 gap-2.5 sm:mt-8 sm:gap-3">
-          <motion.button
-            whileHover={{ y: -3 }}
-            onClick={() => navigate('/ai')}
-            className="ai-border group relative overflow-hidden rounded-[20px] bg-surface p-3.5 text-left sm:rounded-[24px] sm:p-5"
-          >
-            <div className="pointer-events-none absolute -right-16 -top-16 size-56 bg-[radial-gradient(closest-side,var(--ai-2),transparent)] opacity-30 transition group-hover:opacity-50" />
-            <span className="relative flex size-11 items-center justify-center rounded-2xl bg-ai-gradient text-white shadow-[0_8px_24px_-8px_var(--ai-1)]">
-              <WandSparkles className="size-5" />
-            </span>
-            <div className="relative mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">AI 扒谱</div>
-            <div className="relative mt-1 hidden pr-6 text-[13px] leading-relaxed text-fg-2 sm:block">截图或拍照，让 AI 转成可播放的曲谱</div>
-            <ArrowRight className="absolute bottom-5 right-5 hidden size-4 text-fg-3 transition group-hover:translate-x-1 group-hover:text-fg sm:block" />
-          </motion.button>
-          <motion.button whileHover={{ y: -3 }} onClick={() => openImport()} className="group relative overflow-hidden rounded-[20px] border border-line bg-surface p-3.5 text-left sm:rounded-[24px] sm:p-5">
-            <div className="pointer-events-none absolute -right-16 -top-16 size-56 bg-[radial-gradient(closest-side,#3fb7ff,transparent)] opacity-15 transition group-hover:opacity-30" />
-            <span className="relative flex size-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#3fe0b0,#3fb7ff)] text-[#03140f] shadow-[0_8px_24px_-8px_rgba(63,183,255,0.6)]">
-              <FileUp className="size-5" />
-            </span>
-            <div className="relative mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">导入曲谱</div>
-            <div className="relative mt-1 hidden pr-6 text-[13px] leading-relaxed text-fg-2 sm:block">Guitar Pro、复制来的文字谱或 JSON，本地转换</div>
-            <ArrowRight className="absolute bottom-5 right-5 hidden size-4 text-fg-3 transition group-hover:translate-x-1 group-hover:text-fg sm:block" />
-          </motion.button>
-          <motion.button whileHover={{ y: -3 }} onClick={() => navigate('/edit/new')} className="group relative overflow-hidden rounded-[20px] border border-line bg-surface p-3.5 text-left sm:rounded-[24px] sm:p-5">
-            <div className="pointer-events-none absolute -right-16 -top-16 size-56 bg-[radial-gradient(closest-side,var(--accent),transparent)] opacity-20 transition group-hover:opacity-35" />
-            <span className="relative flex size-11 items-center justify-center rounded-2xl bg-accent-gradient text-accent-fg shadow-[0_8px_24px_-8px_var(--accent-glow)]">
-              <PenLine className="size-5" />
-            </span>
-            <div className="relative mt-3 text-[14px] font-semibold sm:mt-4 sm:text-[16px]">参数化制谱</div>
-            <div className="relative mt-1 hidden pr-6 text-[13px] leading-relaxed text-fg-2 sm:block">写下和弦进行 + 节奏型，六线谱自动生成</div>
-            <ArrowRight className="absolute bottom-5 right-5 hidden size-4 text-fg-3 transition group-hover:translate-x-1 group-hover:text-fg sm:block" />
-          </motion.button>
+        <section className="mt-7 grid grid-cols-3 gap-2.5 sm:mt-9 sm:gap-3">
+          {QUICK.map((a) => (
+            <button
+              key={a.title}
+              onClick={() => (a.to ? navigate(a.to) : openImport())}
+              className="group relative flex flex-col items-start overflow-hidden rounded-[18px] border border-line bg-surface p-3.5 text-left shadow-[var(--shadow)] transition duration-300 hover:-translate-y-0.5 hover:border-line-2 active:scale-[0.98] sm:p-5"
+            >
+              <span className={cn('icon-tile flex size-10 items-center justify-center rounded-xl sm:size-11', a.tone)}>
+                <a.icon className="size-[19px]" strokeWidth={1.9} />
+              </span>
+              <span className="mt-3.5 flex w-full items-center gap-2 sm:mt-5">
+                <span className="text-[14px] font-semibold tracking-tight sm:text-[15px]">{a.title}</span>
+                <span className="eyebrow ml-auto hidden text-[10px] sm:inline">{a.tag}</span>
+              </span>
+              <span className="mt-1 hidden pr-8 text-[13px] leading-relaxed text-fg-3 sm:block">{a.desc}</span>
+              <ArrowUpRight className="absolute right-4 top-4 hidden size-4 text-fg-3 transition duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-fg sm:block" />
+            </button>
+          ))}
         </section>
       )}
 
       {/* 继续练习 */}
       {!favorites && !q && recent.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-4 text-[15px] font-semibold">继续练习</h2>
+          <SectionTitle count={recent.length}>继续练习</SectionTitle>
           <div className="no-scrollbar -mx-5 flex snap-x scroll-px-5 gap-4 overflow-x-auto px-5 pb-2 sm:-mx-8 sm:scroll-px-8 sm:px-8">
             {recent.map((s, i) => (
               <motion.button
@@ -139,21 +133,21 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
                 onClick={() => navigate(`/song/${s.id}`)}
-                className="group relative h-[220px] w-[300px] shrink-0 snap-start overflow-hidden rounded-[26px] text-left ring-1 ring-line sm:w-[340px]"
+                className="group relative h-[200px] w-[280px] shrink-0 snap-start overflow-hidden rounded-[20px] text-left ring-1 ring-inset ring-white/8 sm:h-[220px] sm:w-[340px]"
               >
                 <Cover title={s.title} artist={s.artist} className="absolute inset-0 transition duration-700 group-hover:scale-105" showText={false} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="absolute inset-x-5 bottom-5 flex items-end gap-3">
                   <div className="min-w-0 flex-1 text-white">
-                    <div className="text-[11px] font-medium uppercase tracking-wider text-white/60">{timeAgo(s.lastOpenedAt)}</div>
-                    <div className="mt-1 truncate text-xl font-bold tracking-tight">{s.title}</div>
+                    <div className="font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/55">{timeAgo(s.lastOpenedAt)}</div>
+                    <div className="mt-1.5 truncate text-[19px] font-semibold tracking-tight">{s.title}</div>
                     <div className="truncate text-[13px] text-white/70">
                       {s.artist}
                       {s.doc.key ? ` · ${s.doc.key} 调` : ''}
                     </div>
                   </div>
-                  <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white text-black shadow-xl transition group-hover:scale-110">
-                    <Play className="ml-0.5 size-5 fill-current" />
+                  <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/95 text-black shadow-xl transition group-hover:scale-110">
+                    <Play className="ml-0.5 size-4 fill-current" />
                   </span>
                 </div>
               </motion.button>
@@ -166,7 +160,10 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
       {!empty && (
         <section className="mt-10">
           <div className="mb-5 flex flex-wrap items-center gap-3">
-            <h2 className="mr-auto text-[15px] font-semibold sm:mr-2">{favorites ? '收藏' : q ? `搜索「${q}」` : '全部曲谱'}</h2>
+            <h2 className="mr-auto flex items-baseline gap-2 text-[15px] font-semibold tracking-tight sm:mr-2">
+              {favorites ? '收藏' : q ? `搜索「${q}」` : '全部曲谱'}
+              <span className="font-mono text-[11px] font-medium text-fg-3 tnum">{String(list.length).padStart(2, '0')}</span>
+            </h2>
             <div className="no-scrollbar order-last -mx-5 flex w-[calc(100%+40px)] gap-1.5 overflow-x-auto px-5 sm:order-none sm:mx-0 sm:w-auto sm:flex-1 sm:px-0">
               <Chip active={!tag} onClick={() => setTag(null)}>
                 全部
@@ -206,7 +203,7 @@ export default function Library({ favorites = false }: { favorites?: boolean }) 
               <div className="text-sm text-fg-2">{favorites ? '还没有收藏，点曲谱卡片上的 ♥ 收藏常练的歌' : '没有匹配的曲谱'}</div>
             </div>
           ) : view === 'grid' ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 sm:gap-x-5 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
               {list.map((s, i) => (
                 <SongCard key={s.id} song={s} index={i} />
               ))}

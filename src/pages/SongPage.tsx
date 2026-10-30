@@ -309,10 +309,13 @@ export default function SongPage() {
 
           {/* 曲目信息 */}
           <section className="mb-6 flex flex-col gap-5 px-1 sm:flex-row sm:items-end">
-            <Cover title={rec.title} artist={rec.artist} className="hidden size-28 shrink-0 rounded-[22px] shadow-2xl ring-1 ring-line sm:block" />
+            <Cover title={rec.title} artist={rec.artist} className="hidden size-28 shrink-0 rounded-[16px] shadow-[0_18px_40px_-20px_rgba(0,0,0,0.8)] ring-1 ring-inset ring-white/8 sm:block" />
             <div className="min-w-0 flex-1">
-              <h1 className="text-[28px] font-bold leading-tight tracking-tight sm:text-[34px]">{score.title}</h1>
-              <div className="mt-1 text-sm text-fg-2">
+              <div className="eyebrow mb-2">
+                Score · {score.timeNum}/{score.timeDen} · {score.tempo} BPM
+              </div>
+              <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.02em] sm:text-[34px]">{score.title}</h1>
+              <div className="mt-1 text-[13.5px] text-fg-2">
                 {[score.artist, score.meta.composer && `曲：${score.meta.composer}`, score.meta.lyricist && `词：${score.meta.lyricist}`].filter(Boolean).join('　')}
               </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -329,7 +332,7 @@ export default function SongPage() {
           </section>
 
           {score.meta.notes && (
-            <div className="mb-5 flex gap-3 rounded-2xl border border-line bg-surface px-4 py-3 text-[13px] leading-relaxed text-fg-2">
+            <div className="mb-5 flex gap-3 rounded-[14px] border border-line bg-surface px-4 py-3 text-[13px] leading-relaxed text-fg-2 shadow-[var(--highlight)]">
               <ScrollText className="mt-0.5 size-4 shrink-0 text-accent" />
               {score.meta.notes}
             </div>
@@ -446,12 +449,12 @@ function MetaChip({ label, value, accent }: { label: string; value: string; acce
   return (
     <span
       className={cn(
-        'inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs',
-        accent ? 'bg-accent-soft text-accent' : 'bg-[color-mix(in_oklab,var(--fg)_6%,transparent)] text-fg-2',
+        'inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs',
+        accent ? 'bg-accent-soft text-accent shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--accent)_30%,transparent)]' : 'text-fg-2 shadow-[inset_0_0_0_1px_var(--line-2)]',
       )}
     >
-      <span className="opacity-70">{label}</span>
-      <span className="font-semibold">{value}</span>
+      <span className="text-fg-3">{label}</span>
+      <span className="font-mono text-[11.5px] font-medium">{value}</span>
     </span>
   )
 }

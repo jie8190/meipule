@@ -37,13 +37,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantCls: Record<Variant, string> = {
-  primary:
-    'bg-accent-gradient text-accent-fg font-semibold shadow-[0_8px_24px_-10px_var(--accent-glow)] hover:brightness-110 active:brightness-95',
-  secondary: 'bg-surface-3 text-fg hover:bg-[color-mix(in_oklab,var(--surface-3)_80%,var(--fg)_8%)] border border-line',
+  primary: 'bg-accent-gradient text-accent-fg font-semibold hover:brightness-105 active:brightness-95',
+  secondary:
+    'bg-surface-2 text-fg border border-line-2 shadow-[var(--highlight)] hover:bg-surface-3 hover:border-line-3',
   ghost: 'text-fg-2 hover:text-fg hover:bg-[color-mix(in_oklab,var(--fg)_6%,transparent)]',
   outline: 'border border-line-2 text-fg hover:bg-[color-mix(in_oklab,var(--fg)_5%,transparent)]',
   danger: 'bg-[color-mix(in_oklab,var(--err)_14%,transparent)] text-err hover:bg-[color-mix(in_oklab,var(--err)_22%,transparent)]',
-  ai: 'bg-ai-gradient text-white font-semibold shadow-[0_8px_30px_-10px_var(--ai-1)] hover:brightness-110',
+  ai: 'bg-ai-gradient text-white font-semibold hover:brightness-110',
 }
 const sizeCls: Record<Size, string> = {
   sm: 'h-8 px-3 text-[13px] gap-1.5 rounded-[10px]',
@@ -124,7 +124,7 @@ export function Segmented<T extends string | number>({
 }) {
   const id = useId()
   return (
-    <div className={cn('inline-flex rounded-xl bg-[color-mix(in_oklab,var(--fg)_6%,transparent)] p-1', className)} role="radiogroup">
+    <div className={cn('inline-flex rounded-xl bg-[color-mix(in_oklab,var(--fg)_5%,transparent)] p-1 shadow-[inset_0_0_0_1px_var(--line)]', className)} role="radiogroup">
       {options.map((o) => {
         const on = o.value === value
         return (
@@ -143,7 +143,7 @@ export function Segmented<T extends string | number>({
             {on && (
               <motion.span
                 layoutId={`seg-${id}`}
-                className="absolute inset-0 -z-10 rounded-[9px] bg-surface-2 shadow-[0_1px_3px_rgba(0,0,0,0.25)] ring-1 ring-line"
+                className="absolute inset-0 -z-10 rounded-[9px] bg-surface-3 shadow-[var(--highlight),0_1px_3px_rgba(0,0,0,0.25)] ring-1 ring-line light:bg-surface-2"
                 transition={{ type: 'spring', stiffness: 500, damping: 38 }}
               />
             )}
@@ -336,7 +336,7 @@ export function Chip({
       }[tone]
     : active
       ? 'bg-fg text-bg'
-      : 'bg-[color-mix(in_oklab,var(--fg)_6%,transparent)] text-fg-2 hover:text-fg hover:bg-[color-mix(in_oklab,var(--fg)_10%,transparent)]'
+      : 'text-fg-2 shadow-[inset_0_0_0_1px_var(--line-2)] hover:text-fg hover:shadow-[inset_0_0_0_1px_var(--line-3)]'
   const Comp = onClick ? 'button' : 'span'
   return (
     <Comp
@@ -559,7 +559,7 @@ export const toast = {
 export function Toaster() {
   const { items, drop } = useToasts()
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(88px+var(--sab))] z-[100] flex flex-col items-center gap-2 px-4 lg:bottom-8">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(92px+var(--sab))] z-[100] flex flex-col items-center gap-2 px-4 lg:bottom-8">
       <AnimatePresence>
         {items.map((t) => (
           <motion.div
@@ -650,13 +650,50 @@ export function Kbd({ children }: { children: ReactNode }) {
   return <kbd className="kbd">{children}</kbd>
 }
 
-export function SectionTitle({ children, action, className }: { children: ReactNode; action?: ReactNode; className?: string }) {
+export function SectionTitle({ children, action, count, className }: { children: ReactNode; action?: ReactNode; count?: number; className?: string }) {
   return (
     <div className={cn('mb-4 flex items-end justify-between gap-4', className)}>
-      <h2 className="text-[15px] font-semibold tracking-tight text-fg">{children}</h2>
+      <h2 className="flex items-baseline gap-2 text-[15px] font-semibold tracking-tight text-fg">
+        {children}
+        {count !== undefined && <span className="font-mono text-[11px] font-medium text-fg-3 tnum">{String(count).padStart(2, '0')}</span>}
+      </h2>
       {action}
     </div>
   )
+}
+
+/**
+ * 页面标题区：等宽小字眉标 + 大标题 + 一行说明，右侧放操作。
+ * 标题里可以用 <Dim> 把后半句压成灰色，做出主次两色的标题。
+ */
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+  className,
+}: {
+  eyebrow?: ReactNode
+  title: ReactNode
+  description?: ReactNode
+  actions?: ReactNode
+  className?: string
+}) {
+  return (
+    <header className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-4', className)}>
+      <div className="min-w-0">
+        {eyebrow && <div className="eyebrow mb-3 flex items-center gap-2">{eyebrow}</div>}
+        <h1 className="text-[30px] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-[38px]">{title}</h1>
+        {description && <p className="mt-2.5 max-w-xl text-[13.5px] leading-relaxed text-fg-2">{description}</p>}
+      </div>
+      {actions && <div className="flex w-full items-center gap-2 sm:w-auto">{actions}</div>}
+    </header>
+  )
+}
+
+/** 标题里的次要部分（灰色） */
+export function Dim({ children }: { children: ReactNode }) {
+  return <span className="text-fg-3">{children}</span>
 }
 
 export function Spinner({ className }: { className?: string }) {

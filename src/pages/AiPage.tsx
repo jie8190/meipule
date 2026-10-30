@@ -146,14 +146,14 @@ ${result}`
   return (
     <div className="mx-auto max-w-[1400px] px-5 pb-20 pt-6 sm:px-8 lg:pt-10">
       <header className="relative">
-        <div className="pointer-events-none absolute -left-32 -top-40 -z-10 size-[30rem] bg-[radial-gradient(closest-side,var(--ai-1),transparent)] opacity-25" />
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-[color-mix(in_oklab,var(--ai-1)_14%,transparent)] px-3 py-1 text-xs font-semibold text-ai-1">
-          <WandSparkles className="size-3.5" /> AI 扒谱工作台
+        <div className="pointer-events-none absolute -left-32 -top-40 -z-10 size-[30rem] bg-[radial-gradient(closest-side,var(--ai-1),transparent)] opacity-[0.12]" />
+        <div className="eyebrow flex items-center gap-2">
+          <WandSparkles className="size-3.5 text-ai-1" /> AI Transcribe · Workbench
         </div>
-        <h1 className="mt-3 text-[26px] font-bold leading-tight tracking-tight sm:text-[42px]">
-          把任何吉他谱，变成<span className="text-gradient-ai">会动的谱</span>
+        <h1 className="mt-3 text-[28px] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-[38px]">
+          把任何吉他谱，<span className="whitespace-nowrap"><span className="text-fg-3">变成</span><span className="text-gradient-ai">会动的谱</span></span>
         </h1>
-        <p className="mt-2 hidden max-w-2xl text-sm leading-relaxed text-fg-2 sm:block">
+        <p className="mt-2.5 hidden max-w-2xl text-[13.5px] leading-relaxed text-fg-2 sm:block">
           上传曲谱截图或粘贴文字谱，AI 会按「没谱了」的参数化格式转写成 JSON：识别和弦、节奏型、简谱旋律和歌词。可以复制提示词到任意 AI 使用，也可以填上 API Key 一键直连。
         </p>
         <div className="mt-5 hidden flex-wrap items-center gap-2 text-[13px] sm:flex">

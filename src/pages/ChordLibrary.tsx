@@ -6,7 +6,7 @@ import { CHORD_QUALITY_LIST, describeChord, fretsToString, getChordVoicings, par
 import { ChordDiagram } from '@/components/ChordDiagram'
 import { strumShape } from '@/components/ChordModal'
 import { useSettings } from '@/store/settings'
-import { cn, Input } from '@/components/ui'
+import { cn, Input, PageHeader } from '@/components/ui'
 
 const ROOTS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
 
@@ -27,11 +27,11 @@ export default function ChordLibrary() {
 
   return (
     <div className="mx-auto max-w-[1200px] px-5 pb-20 pt-6 sm:px-8 lg:pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[32px] font-bold tracking-tight">和弦库</h1>
-          <p className="mt-1 text-sm text-fg-2">任意和弦都能生成按法：常用和弦用国内谱面习惯指法，其它由算法计算最好按的把位</p>
-        </div>
+      <PageHeader
+        eyebrow="Chords · Voicings"
+        title="和弦库"
+        description="任意和弦都能生成按法：常用和弦用国内谱面习惯指法，其它由算法计算最好按的把位"
+        actions={
         <Input
           icon={<Search className="size-4" />}
           className="w-full sm:w-72"
@@ -43,7 +43,8 @@ export default function ChordLibrary() {
             if (info) setParams({ c: e.target.value.trim() }, { replace: true })
           }}
         />
-      </div>
+        }
+      />
 
       <div className="mt-6 flex flex-wrap gap-1.5">
         {ROOTS.map((r) => (
