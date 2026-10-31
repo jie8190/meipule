@@ -10,6 +10,7 @@
 ![Android](https://img.shields.io/badge/Android-APK-3ddc84?style=flat-square&logo=android&logoColor=white)
 ![Web](https://img.shields.io/badge/Web-PWA-5a0fc8?style=flat-square&logo=pwa&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white)
+[![License](https://img.shields.io/badge/License-MIT-a3a09a?style=flat-square)](LICENSE)
 
 [**⬇ 下载安卓 APK**](../../releases/latest) · [快速开始](#快速开始) · [曲谱格式](#曲谱格式简要)
 
@@ -152,3 +153,7 @@ React 19 · TypeScript · Vite · Tailwind CSS 4 · Motion · Dexie（IndexedDB�
 ## 关于 API Key
 
 AI 直连时，API Key 只保存在本机浏览器的 localStorage 中，请求由浏览器直接发往你填写的服务商。不想填 Key 的话，用「复制提示词」把提示词和图片发给任意 AI 对话即可，效果一样。
+
+## 许可证
+
+[MIT](LICENSE) © 2026 jie8190
