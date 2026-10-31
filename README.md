@@ -1,6 +1,45 @@
-# 没谱了 · 本地吉他谱
+<div align="center">
 
-一个本地优先的吉他谱 App（参考「有谱么」的使用体验）。所有曲谱都由你自己创建、保存在本机，不依赖在线曲库。核心是一套**参数化的曲谱 JSON 格式**：大多数弹唱伴奏只需要写「和弦 + 节奏型」，六线谱自动生成；所以很适合让 AI 把谱子扒成 JSON 再直接导入。
+<img src="public/icon.svg" width="104" alt="没谱了" />
+
+# 没谱了
+
+**本地优先的吉他谱 App** · 参数化制谱 · AI 扒谱 · 多轨播放 · 变调 · 调音器
+
+[![Release](https://img.shields.io/github/v/release/jie8190/meipule?style=flat-square&color=f5b041&label=下载)](../../releases/latest)
+![Android](https://img.shields.io/badge/Android-APK-3ddc84?style=flat-square&logo=android&logoColor=white)
+![Web](https://img.shields.io/badge/Web-PWA-5a0fc8?style=flat-square&logo=pwa&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white)
+
+[**⬇ 下载安卓 APK**](../../releases/latest) · [快速开始](#快速开始) · [曲谱格式](#曲谱格式简要)
+
+</div>
+
+<br />
+
+<p align="center">
+  <img src="docs/screenshots/library.jpg" width="19%" alt="曲库" />
+  <img src="docs/screenshots/score.jpg" width="19%" alt="曲谱" />
+  <img src="docs/screenshots/ai.jpg" width="19%" alt="AI 扒谱" />
+  <img src="docs/screenshots/tools.jpg" width="19%" alt="工具" />
+  <img src="docs/screenshots/tuner.jpg" width="19%" alt="调音器" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/metronome.jpg" width="19%" alt="节拍器" />
+  <img src="docs/screenshots/chords.jpg" width="19%" alt="和弦库" />
+  <img src="docs/screenshots/settings.jpg" width="19%" alt="设置" />
+  <img src="docs/screenshots/library-light.jpg" width="19%" alt="曲库（浅色）" />
+  <img src="docs/screenshots/score-light.jpg" width="19%" alt="曲谱（浅色）" />
+</p>
+
+<br />
+
+所有曲谱都由你自己创建、保存在本机，不依赖在线曲库，离线可用。核心是一套**参数化的曲谱 JSON 格式**：大多数弹唱伴奏只需要写「和弦 + 节奏型」，六线谱自动生成；所以很适合让 AI 把谱子截图扒成 JSON 再直接导入，也能直接导入 Guitar Pro 文件和网上复制来的文字谱。
+
+## 下载安装
+
+- **安卓**：到 [Releases](../../releases/latest) 下载 `meipule-x.y.z.apk`，传到手机上安装（需要允许「安装未知来源应用」）。覆盖安装不会丢失曲库数据。
+- **网页 / 桌面**：按下面的[快速开始](#快速开始)自己运行或部署；网页版是 PWA，可以「添加到主屏幕」当 App 用。
 
 ## 功能
 
@@ -52,7 +91,7 @@ npm run android:live   # 热更新预览：App 直接加载电脑上的 npm run 
 3. 点工具栏的 ▶ Run，App 就会在模拟器/手机上运行
 4. 想边改边看：先 `npm run dev`，再 `npm run android:live`，然后在 Android Studio 里点 ▶；之后改代码 App 会自动刷新。结束后运行 `npm run android:sync` 恢复正常模式
 
-**图标/启动页**：`npm run android:assets` 会用 Logo 重新生成所有尺寸的启动图标和启动页。
+**图标/启动页**：图形定义在 `src/lib/brand.ts`。`node scripts/icons.mjs` 重新生成网页/PWA 图标，`npm run android:assets` 重新生成安卓启动图标和启动页（这两个脚本需要 Node.js 22.18+，以及本机安装的 Microsoft Edge）。
 
 **正式签名版**：调试版 APK 已可直接安装使用。若要发布或长期使用，可在 Android Studio 里用 Build → Generate Signed App Bundle / APK 生成自己签名的 release 版（请保管好 keystore，以后升级需要同一个签名）。
 
@@ -105,6 +144,10 @@ src/
   pages/            曲库、谱面、编辑器、AI 扒谱、歌单、调音器、节拍器、和弦库、设置、文档
 src/samples/        内置示例曲谱（公版曲目与原创练习曲）
 ```
+
+## 技术栈
+
+React 19 · TypeScript · Vite · Tailwind CSS 4 · Motion · Dexie（IndexedDB）· CodeMirror 6 · alphaTab（Guitar Pro 解析）· Capacitor 8（安卓）· Web Audio（Karplus-Strong 拨弦合成）
 
 ## 关于 API Key
 
